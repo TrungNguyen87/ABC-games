@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body {
+    font-family: 'Fredoka', 'Quicksand', system-ui, -apple-system, sans-serif;
+    touch-action: manipulation;
+    overflow: hidden;
+  }
+}
+
+/* 3D Toddler Tactile Buttons */
+.btn-3d {
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.12s ease;
+}
+
+.btn-3d:active {
+  transform: translateY(6px) scale(0.98);
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Wiggle animation for celebration / gentle shake */
+@keyframes kidWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg) scale(1.05); }
+  75% { transform: rotate(8deg) scale(1.05); }
+}
+
+@keyframes kidBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  70% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.6)); }
+  50% { filter: drop-shadow(0 0 20px rgba(253, 224, 71, 1)); }
+}
+
+@keyframes shakeWrong {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-12px) rotate(-6deg); }
+  40%, 80% { transform: translateX(12px) rotate(6deg); }
+}
+
+.animate-kid-wiggle {
+  animation: kidWiggle 0.6s ease-in-out infinite;
+}
+
+.animate-kid-bounce {
+  animation: kidBounce 1.5s ease-in-out infinite;
+}
+
+.animate-pop-in {
+  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-gentle-float {
+  animation: gentleFloat 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 1.8s ease-in-out infinite;
+}
+
+.animate-shake-wrong {
+  animation: shakeWrong 0.45s ease-in-out;
+}
