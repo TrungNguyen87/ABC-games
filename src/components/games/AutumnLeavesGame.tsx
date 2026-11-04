@@ -171,7 +171,7 @@ export default function AutumnLeavesGame({
 
     if (item.isSpecialGolden) {
       sounds.playCheer();
-      fireConfettiBurst(clientX, clientY);
+      fireConfettiBurst(clientX, clientY, 'autumn');
       onEarnStar();
       if (language === 'nl') {
         sounds.speak('Gouden herfstmagie! Wat een mooie vondst!', 'nl');
@@ -184,7 +184,7 @@ export default function AutumnLeavesGame({
     if (mode === 'target') {
       if (item.wordItem.id === targetItem.id) {
         sounds.playChime();
-        fireConfettiBurst(clientX, clientY);
+        fireConfettiBurst(clientX, clientY, 'autumn');
         onEarnStar();
 
         if (language === 'nl') {

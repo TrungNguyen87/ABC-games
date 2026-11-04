@@ -313,7 +313,7 @@ export default function App() {
       />
 
       {/* Main Play Area */}
-      <main className="relative flex-1 w-full h-[calc(100vh-64px)] overflow-hidden flex flex-col items-center justify-center p-2">
+      <main className="relative flex-1 w-full h-[calc(100dvh-64px)] max-h-[calc(100dvh-64px)] overflow-hidden flex flex-col items-center justify-center p-1 sm:p-2">
         {currentMode === 'menu' && (
           <div className="w-full h-full max-w-5xl mx-auto flex flex-col items-center justify-between py-1 sm:py-2 px-3 sm:px-4 overflow-y-auto scrollbar-none">
             {/* Title Lockup */}
@@ -346,7 +346,7 @@ export default function App() {
               <button
                 onClick={() => {
                   sounds.playGhost();
-                  fireConfettiBurst();
+                  fireConfettiBurst('halloween');
                   setCurrentMode('lore-speller');
                   if (language === 'nl') {
                     sounds.speak('Boe! Welkom bij Halloween Woordjes Spellen!', 'nl');
@@ -366,7 +366,7 @@ export default function App() {
               <button
                 onClick={() => {
                   sounds.playRustle();
-                  fireConfettiBurst();
+                  fireConfettiBurst('autumn');
                   setCurrentMode('autumn-leaves');
                   if (language === 'nl') {
                     sounds.speak('Welkom in het herfstbos! Vang de vallende blaadjes!', 'nl');
@@ -386,7 +386,7 @@ export default function App() {
               <button
                 onClick={() => {
                   sounds.playSplash();
-                  fireConfettiBurst();
+                  fireConfettiBurst('autumn');
                   setCurrentMode('puddle-splash');
                   if (language === 'nl') {
                     sounds.speak('Plons! Trek je laarzen aan en spring in de plassen!', 'nl');

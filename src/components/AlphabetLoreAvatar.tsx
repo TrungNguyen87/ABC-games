@@ -76,10 +76,10 @@ export default function AlphabetLoreAvatar({
   };
 
   const sizeClasses = {
-    sm: 'w-14 h-14 text-3xl rounded-2xl',
-    md: 'w-20 h-20 sm:w-24 sm:h-24 text-4xl sm:text-5xl rounded-[1.8rem]',
-    lg: 'w-28 h-28 sm:w-32 sm:h-32 text-6xl sm:text-7xl rounded-[2.2rem]',
-    xl: 'w-36 h-36 sm:w-44 sm:h-44 text-7xl sm:text-8xl rounded-[2.8rem]',
+    sm: 'w-11 h-11 sm:w-12 sm:h-12 md:w-13 md:h-13 text-2xl sm:text-3xl rounded-xl sm:rounded-2xl',
+    md: 'w-14 h-14 sm:w-16 sm:h-16 md:w-18 md:h-18 text-3xl sm:text-4xl rounded-2xl',
+    lg: 'w-22 h-22 sm:w-24 sm:h-24 md:w-28 md:h-28 text-5xl sm:text-6xl rounded-[1.8rem]',
+    xl: 'w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 text-6xl sm:text-7xl rounded-[2.2rem]',
   };
 
   const handleClick = () => {
@@ -99,17 +99,27 @@ export default function AlphabetLoreAvatar({
   const shouldUseDiv = asDiv || !isClickable;
   const Tag = shouldUseDiv ? 'div' : 'button';
 
+  const shadowHeight = size === 'sm' ? '4px' : size === 'md' ? '6px' : '8px';
+
   return (
-    <div className={`relative inline-flex flex-col items-center justify-center select-none ${className}`}>
+    <div className={`relative inline-flex flex-col items-center justify-center select-none pt-2 ${className}`}>
       {/* Halloween Cute Spooky Hat / Bat Wings when Halloween mode is active */}
       {isSpookyHalloween && (
-        <div className="absolute -top-4 sm:-top-5 z-30 pointer-events-none animate-bounce">
+        <div
+          className={`absolute z-30 pointer-events-none animate-bounce ${
+            size === 'sm'
+              ? '-top-2 text-base sm:text-lg'
+              : size === 'md'
+              ? '-top-3 sm:-top-3.5 text-xl'
+              : '-top-4 sm:-top-5 text-2xl sm:text-3xl'
+          }`}
+        >
           {upperLetter === 'F' ? (
-            <span className="text-2xl sm:text-3xl">🦇</span>
+            <span>🦇</span>
           ) : upperLetter === 'H' ? (
-            <span className="text-2xl sm:text-3xl">👻</span>
+            <span>👻</span>
           ) : (
-            <span className="text-2xl sm:text-3xl">🧙‍♀️</span>
+            <span>🧙‍♀️</span>
           )}
         </div>
       )}
@@ -120,10 +130,10 @@ export default function AlphabetLoreAvatar({
         aria-label={`Alphabet Lore Character ${upperLetter}`}
         style={{
           backgroundColor: lore.color,
-          boxShadow: `0 8px 0 ${lore.shadowColor}, 0 16px 20px rgba(0,0,0,0.25)`,
+          boxShadow: `0 ${shadowHeight} 0 ${lore.shadowColor}, 0 10px 14px rgba(0,0,0,0.2)`,
         }}
         className={`relative ${sizeClasses[size]} flex items-center justify-center font-black transition-all select-none border-2 border-black/40
-          ${isClickable ? 'cursor-pointer active:translate-y-2 active:shadow-none hover:scale-105' : ''}
+          ${isClickable ? 'cursor-pointer active:translate-y-1 active:shadow-none hover:scale-105' : ''}
           ${isBouncing ? 'animate-kid-wiggle' : ''}
           ${upperLetter === 'F' ? 'text-white' : upperLetter === 'X' || upperLetter === 'Z' || upperLetter === 'Q' ? 'text-slate-900' : 'text-white'}
         `}
@@ -242,9 +252,9 @@ export default function AlphabetLoreAvatar({
         </div>
       </Tag>
 
-      {/* Spooky candy corn or pumpkin badge on Halloween */}
-      {isSpookyHalloween && (
-        <span className="text-xs font-black text-amber-950 bg-amber-300 px-2 rounded-full mt-1 border border-amber-500 shadow-sm">
+      {/* Spooky text badge ONLY on large showcase avatars so grid letters are never truncated */}
+      {isSpookyHalloween && (size === 'xl' || size === 'lg') && (
+        <span className="text-[11px] sm:text-xs font-black text-amber-950 bg-amber-300 px-2 py-0.5 rounded-full mt-1 border border-amber-500 shadow-sm whitespace-nowrap">
           🎃 Lore {upperLetter}
         </span>
       )}

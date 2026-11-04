@@ -184,7 +184,7 @@ export default function LoreSpellerGame({
 
   const handleWordSuccess = (spelled: string) => {
     setIsWordComplete(true);
-    fireConfettiBurst();
+    fireConfettiBurst(isSpookyHalloween ? 'halloween' : category === 'autumn' ? 'autumn' : 'rainbow');
 
     if (isSpookyHalloween) {
       sounds.playSpookyBoo();
@@ -215,7 +215,7 @@ export default function LoreSpellerGame({
 
   return (
     <div
-      className={`relative w-full h-full flex flex-col items-center justify-between p-2 sm:p-4 rounded-3xl transition-colors duration-500 overflow-hidden select-none ${
+      className={`relative w-full h-full flex flex-col items-center justify-between p-2 sm:p-3 rounded-3xl transition-colors duration-500 overflow-y-auto overflow-x-hidden scrollbar-none select-none ${
         isSpookyHalloween
           ? 'bg-gradient-to-b from-purple-950 via-indigo-950 to-slate-950 text-white'
           : 'bg-gradient-to-b from-sky-300 via-indigo-200 to-amber-100 text-slate-800'
@@ -328,31 +328,31 @@ export default function LoreSpellerGame({
       </div>
 
       {/* Main Target Word Presentation Card */}
-      <div className="relative z-10 flex flex-col items-center justify-center my-auto w-full max-w-2xl text-center">
+      <div className="relative z-10 flex flex-col items-center justify-center my-1 sm:my-auto w-full max-w-2xl text-center flex-shrink-0">
         {/* Word Picture & Audio Button */}
-        <div className="relative inline-flex flex-col items-center mb-2">
+        <div className="relative inline-flex flex-col items-center mb-1">
           <div
             onClick={handleSpeakWord}
-            className="cursor-pointer group flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white/20 backdrop-blur-md border-4 border-white/50 shadow-2xl active:scale-95 transition-transform"
+            className="cursor-pointer group flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-white/20 backdrop-blur-md border-3 border-white/50 shadow-xl active:scale-95 transition-transform"
           >
-            <span className="text-6xl sm:text-7xl group-hover:scale-110 transition-transform animate-kid-bounce">
+            <span className="text-4xl sm:text-5xl group-hover:scale-110 transition-transform animate-kid-bounce">
               {currentWord.emoji}
             </span>
-            <div className="absolute -bottom-2 -right-2 bg-pink-500 text-white p-2 rounded-full shadow-lg">
-              <Volume2 className="w-4 h-4" />
+            <div className="absolute -bottom-1 -right-1 bg-pink-500 text-white p-1.5 rounded-full shadow-lg">
+              <Volume2 className="w-3.5 h-3.5" />
             </div>
           </div>
 
-          <h2 className="mt-2 text-2xl sm:text-3xl font-black tracking-wide drop-shadow-md">
+          <h2 className="mt-1 text-xl sm:text-2xl font-black tracking-wide drop-shadow-md">
             {language === 'nl' ? currentWord.wordNl : currentWord.wordEn}
           </h2>
-          <p className="text-xs sm:text-sm font-medium text-white/90 max-w-md drop-shadow px-2">
+          <p className="text-[11px] sm:text-xs font-medium text-white/90 max-w-md drop-shadow px-2">
             {language === 'nl' ? currentWord.hintNl : currentWord.hintEn}
           </p>
         </div>
 
         {/* Word Letter Slots (Target Drop / Tap Targets) */}
-        <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap my-2">
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 flex-wrap my-1.5 max-w-full px-2">
           {slots.map((slot) => {
             const hasLetter = slot.placedLetter !== null;
             return (
@@ -361,15 +361,15 @@ export default function LoreSpellerGame({
                 type="button"
                 onClick={() => handleRemoveFromSlot(slot.index)}
                 disabled={!hasLetter || isWordComplete}
-                className={`relative w-16 h-20 sm:w-20 sm:h-24 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 border-3 ${
+                className={`relative w-12 h-16 sm:w-15 sm:h-20 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 border-2 sm:border-3 ${
                   hasLetter
                     ? 'border-white/80 cursor-pointer active:scale-95'
                     : 'border-dashed border-white/50 bg-white/15'
                 }`}
                 style={{
                   boxShadow: hasLetter
-                    ? '0 6px 0 rgba(0,0,0,0.3)'
-                    : 'inset 0 4px 8px rgba(0,0,0,0.15)',
+                    ? '0 4px 0 rgba(0,0,0,0.3)'
+                    : 'inset 0 2px 4px rgba(0,0,0,0.15)',
                 }}
               >
                 {hasLetter ? (
@@ -386,7 +386,7 @@ export default function LoreSpellerGame({
                   <div className="flex flex-col items-center justify-center">
                     {/* Faint Silhouette Hint for Toddlers */}
                     {showHelperSilhouette ? (
-                      <span className="text-3xl sm:text-4xl font-black text-white/30 select-none">
+                      <span className="text-2xl sm:text-3xl font-black text-white/30 select-none">
                         {slot.expectedLetter}
                       </span>
                     ) : (
@@ -396,7 +396,7 @@ export default function LoreSpellerGame({
                 )}
 
                 {/* Subtitle slot order indicator */}
-                <div className="absolute -bottom-2 text-[10px] font-black bg-black/40 text-white/90 px-1.5 py-0.2 rounded-full">
+                <div className="absolute -bottom-2 text-[9px] sm:text-[10px] font-black bg-black/40 text-white/90 px-1.5 py-0.2 rounded-full">
                   {slot.index + 1}
                 </div>
               </button>
@@ -406,31 +406,31 @@ export default function LoreSpellerGame({
 
         {/* Success Banner Overlay when Word is complete */}
         {isWordComplete && (
-          <div className="animate-pop-in flex flex-col items-center bg-emerald-500/90 text-white px-6 py-3 rounded-3xl shadow-2xl border-2 border-white my-1">
-            <div className="flex items-center gap-2 text-xl sm:text-2xl font-black">
+          <div className="animate-pop-in flex flex-col items-center bg-emerald-500/90 text-white px-5 py-2.5 rounded-3xl shadow-2xl border-2 border-white my-1">
+            <div className="flex items-center gap-2 text-lg sm:text-xl font-black">
               <span>🌟</span>
               <span>{celebrationMessage || (language === 'nl' ? 'Geweldig Gedaan!' : 'Awesome Job!')}</span>
               <span>🎉</span>
             </div>
             <button
               onClick={handleNextWord}
-              className="mt-2.5 px-6 py-2.5 bg-amber-400 hover:bg-amber-300 text-amber-950 font-black text-base sm:text-lg rounded-full shadow-[0_5px_0_#b45309] active:translate-y-1 active:shadow-none flex items-center gap-2 cursor-pointer transition-all animate-kid-bounce"
+              className="mt-2 px-5 py-2 bg-amber-400 hover:bg-amber-300 text-amber-950 font-black text-sm sm:text-base rounded-full shadow-[0_4px_0_#b45309] active:translate-y-1 active:shadow-none flex items-center gap-1.5 cursor-pointer transition-all animate-kid-bounce"
             >
               <span>{language === 'nl' ? 'VOLGEND WOORDJE!' : 'NEXT WORD!'}</span>
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         )}
       </div>
 
       {/* Available Alphabet Lore Letters Choices (Pool at Bottom) */}
-      <div className="relative z-10 w-full max-w-4xl bg-black/30 backdrop-blur-md rounded-3xl p-3 sm:p-4 border-2 border-white/20 flex flex-col items-center">
-        <div className="flex items-center justify-between w-full px-2 mb-2">
-          <span className="text-xs sm:text-sm font-black text-white/90 flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-amber-300" />
+      <div className="relative z-10 w-full max-w-4xl bg-black/35 backdrop-blur-md rounded-2xl sm:rounded-3xl p-2 sm:p-2.5 border-2 border-white/20 flex flex-col items-center flex-shrink-0">
+        <div className="flex items-center justify-between w-full px-2 mb-1">
+          <span className="text-[11px] sm:text-xs font-black text-white/90 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
             {language === 'nl'
-              ? 'Tik op de Alphabet Lore letters om het woordje te spellen:'
-              : 'Tap the Alphabet Lore letters to spell the word:'}
+              ? 'Tik op de letters om het woordje te spellen:'
+              : 'Tap letters to spell the word:'}
           </span>
           <button
             onClick={() => {
@@ -445,20 +445,20 @@ export default function LoreSpellerGame({
               setLetterPool((prev) => prev.map((p) => ({ ...p, used: false })));
             }}
             title={language === 'nl' ? 'Opnieuw beginnen' : 'Reset letters'}
-            className="text-xs text-white/80 hover:text-white flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full cursor-pointer"
+            className="text-[11px] text-white/80 hover:text-white flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full cursor-pointer"
           >
             <RefreshCw className="w-3 h-3" />
             <span>{language === 'nl' ? 'Herstel' : 'Reset'}</span>
           </button>
         </div>
 
-        <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 md:gap-3 flex-wrap">
           {letterPool.map((item, idx) => (
             <div
               key={item.id}
               className={`transition-all duration-200 ${
                 item.used
-                  ? 'opacity-25 pointer-events-none scale-90 translate-y-2'
+                  ? 'opacity-20 pointer-events-none scale-90 translate-y-1'
                   : 'hover:scale-105 active:scale-95'
               }`}
             >

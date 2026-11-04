@@ -70,7 +70,7 @@ export default function DutchWorldGame({ onEarnStar, language }: DutchWorldGameP
     if (mode === 'quiz') {
       if (word.id === targetWord.id) {
         sounds.playChime();
-        fireConfettiBurst();
+        fireConfettiBurst(selectedCategory === 'autumn' ? 'autumn' : 'rainbow');
         onEarnStar();
         setFeedback(`Goed zo! ${word.articleNl} ${word.nl}! 🎉`);
 

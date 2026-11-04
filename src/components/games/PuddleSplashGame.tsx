@@ -83,7 +83,7 @@ export default function PuddleSplashGame({
     if (mode === 'target') {
       if (letter.letter === targetLetter.letter) {
         sounds.playChime();
-        fireConfettiBurst(splashX, splashY);
+        fireConfettiBurst(splashX, splashY, 'autumn');
         onEarnStar();
         if (onUnlockSticker) onUnlockSticker(letter.letter);
 

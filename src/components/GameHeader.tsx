@@ -1,7 +1,8 @@
-import React from 'react';
-import { Volume2, VolumeX, Music, RotateCcw, Home, HelpCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Volume2, VolumeX, Music, RotateCcw, Home, HelpCircle, Sparkles } from 'lucide-react';
 import { sounds } from '../utils/soundEffects';
 import { Language } from '../types/game';
+import { fireConfettiBurst, ConfettiTheme } from './ConfettiCanvas';
 
 interface GameHeaderProps {
   onBackToMenu: () => void;
@@ -34,6 +35,14 @@ export default function GameHeader({
   onToggleLanguage,
   title,
 }: GameHeaderProps) {
+  const [seasonalThemeIndex, setSeasonalThemeIndex] = useState(0);
+  const seasonalThemes: { id: ConfettiTheme; icon: string; nameNl: string; nameEn: string }[] = [
+    { id: 'autumn', icon: '🍂', nameNl: 'Herfstblaadjes', nameEn: 'Autumn Leaves' },
+    { id: 'halloween', icon: '🎃', nameNl: 'Pompoentjes', nameEn: 'Halloween Pumpkins' },
+    { id: 'winter', icon: '❄️', nameNl: 'Sneeuwvlokken', nameEn: 'Winter Snowflakes' },
+    { id: 'stars', icon: '⭐', nameNl: 'Gouden Sterren', nameEn: 'Golden Stars' },
+  ];
+
   return (
     <header className="w-full flex items-center justify-between px-3 sm:px-6 py-2 z-30 select-none">
       {/* Left: Big Home Button + Game Title */}
@@ -57,17 +66,31 @@ export default function GameHeader({
         )}
       </div>
 
-      {/* Center: Star counter cluster */}
-      <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full border-2 border-white/40 shadow-sm">
-        <span className="text-2xl sm:text-3xl animate-bounce">⭐</span>
-        <span className="text-2xl sm:text-3xl font-extrabold text-yellow-300 drop-shadow-[0_2px_0_rgba(0,0,0,0.3)] tabular-nums">
-          {stars}
-        </span>
-        {streak > 1 && (
-          <span className="text-xs sm:text-sm font-bold text-white bg-amber-500/80 px-2 py-0.5 rounded-full">
-            {streak}x
+      {/* Center: Star counter cluster & Seasonal Confetti celebration trigger */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <button
+          type="button"
+          onClick={(e) => {
+            sounds.playSparkle();
+            const current = seasonalThemes[seasonalThemeIndex];
+            fireConfettiBurst(e.clientX, e.clientY, current.id);
+            setSeasonalThemeIndex((prev) => (prev + 1) % seasonalThemes.length);
+          }}
+          className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md px-3.5 sm:px-4 py-1.5 rounded-full border-2 border-white/40 shadow-sm cursor-pointer active:scale-95 transition-all"
+          title={language === 'nl' ? 'Tik voor feestconfetti!' : 'Tap for seasonal confetti!'}
+        >
+          <span className="text-2xl sm:text-3xl animate-bounce">
+            {seasonalThemes[seasonalThemeIndex].icon}
           </span>
-        )}
+          <span className="text-xl sm:text-2xl font-extrabold text-yellow-300 drop-shadow-[0_2px_0_rgba(0,0,0,0.3)] tabular-nums">
+            {stars}
+          </span>
+          {streak > 1 && (
+            <span className="text-xs sm:text-sm font-bold text-white bg-amber-500/80 px-2 py-0.5 rounded-full">
+              {streak}x
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Right: Language Toggle + Voice Style + Sound Controls + Repeat Audio */}

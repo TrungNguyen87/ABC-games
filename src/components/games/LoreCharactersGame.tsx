@@ -28,7 +28,7 @@ export default function LoreCharactersGame({ onEarnStar, language }: LoreCharact
       if (letter === challengeTarget) {
         sounds.playCheer();
         sounds.playSparkle();
-        fireConfettiBurst();
+        fireConfettiBurst(isSpookyHalloween ? 'halloween' : 'stars');
         onEarnStar();
         const successMsg =
           language === 'nl'
@@ -85,7 +85,7 @@ export default function LoreCharactersGame({ onEarnStar, language }: LoreCharact
   };
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-between p-2 sm:p-4 rounded-3xl bg-gradient-to-b from-indigo-950 via-slate-900 to-purple-950 text-white overflow-hidden select-none">
+    <div className="relative w-full h-full flex flex-col items-center justify-between p-2 sm:p-3 rounded-3xl bg-gradient-to-b from-indigo-950 via-slate-900 to-purple-950 text-white overflow-y-auto overflow-x-hidden scrollbar-none select-none">
       {/* Halloween Bats / Floating Magic Dots in Background */}
       <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
         <div className="absolute top-4 left-6 text-3xl animate-bounce">🦇</div>
@@ -95,7 +95,7 @@ export default function LoreCharactersGame({ onEarnStar, language }: LoreCharact
       </div>
 
       {/* Top Controls Bar */}
-      <div className="relative z-10 w-full max-w-5xl flex flex-wrap items-center justify-between gap-2 bg-white/10 backdrop-blur-md px-3 py-2 rounded-2xl border border-white/20">
+      <div className="relative z-10 w-full max-w-5xl flex flex-wrap items-center justify-between gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 sm:py-2 rounded-2xl border border-white/20 flex-shrink-0">
         <div className="flex items-center gap-2">
           {/* Halloween Toggle */}
           <button
@@ -152,23 +152,23 @@ export default function LoreCharactersGame({ onEarnStar, language }: LoreCharact
       </div>
 
       {/* Center Showcase Spotlight Stage */}
-      <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-4 sm:gap-8 my-auto w-full max-w-4xl py-2">
+      <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-3 sm:gap-6 my-1 sm:my-auto w-full max-w-4xl py-1 flex-shrink-0">
         {/* Spotlight Avatar Preview */}
         <div className="relative flex flex-col items-center">
-          <div className="relative p-4 sm:p-6 rounded-[2.5rem] bg-white/10 backdrop-blur-md border-4 border-white/30 shadow-2xl flex flex-col items-center justify-center">
+          <div className="relative p-3 sm:p-4 rounded-3xl bg-white/10 backdrop-blur-md border-3 border-white/30 shadow-xl flex flex-col items-center justify-center">
             {/* Glowing Spotlight Base */}
             <div
-              className="absolute inset-0 rounded-[2.5rem] opacity-30 blur-xl pointer-events-none"
+              className="absolute inset-0 rounded-3xl opacity-30 blur-xl pointer-events-none"
               style={{ backgroundColor: activeLore.color }}
             />
 
             <AlphabetLoreAvatar
               letter={selectedLetter}
-              size="xl"
+              size="lg"
               isSpookyHalloween={isSpookyHalloween}
               interactive={false}
               language={language}
-              className="my-1 animate-kid-bounce"
+              className="my-0.5 animate-kid-bounce"
             />
 
             {/* Tap to speak catchphrase button */}
@@ -236,7 +236,7 @@ export default function LoreCharactersGame({ onEarnStar, language }: LoreCharact
             <button
               onClick={() => {
                 sounds.playSparkle();
-                fireConfettiBurst();
+                fireConfettiBurst(isSpookyHalloween ? 'halloween' : 'stars');
                 onEarnStar();
               }}
               className="px-3 py-2 bg-amber-400 hover:bg-amber-300 text-amber-950 rounded-xl font-black text-xs sm:text-sm shadow-md cursor-pointer flex items-center gap-1"
@@ -249,27 +249,27 @@ export default function LoreCharactersGame({ onEarnStar, language }: LoreCharact
       </div>
 
       {/* Bottom Grid of All 26 Alphabet Lore Characters */}
-      <div className="relative z-10 w-full max-w-5xl bg-black/40 backdrop-blur-md rounded-3xl p-2.5 sm:p-3 border-2 border-white/20 flex flex-col items-center">
-        <span className="text-xs font-black text-white/80 mb-1.5 flex items-center gap-1.5">
+      <div className="relative z-10 w-full max-w-5xl bg-black/40 backdrop-blur-md rounded-2xl sm:rounded-3xl p-2 sm:p-2.5 border-2 border-white/20 flex flex-col items-center flex-shrink-0">
+        <span className="text-[11px] sm:text-xs font-black text-white/90 mb-1 flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-amber-300" />
           {language === 'nl'
-            ? 'Tik op een Alphabet Lore karakter om te ontdekken (A tot Z):'
-            : 'Tap any Alphabet Lore character to explore (A to Z):'}
+            ? 'Tik op een karakter om te horen en zien (A tot Z):'
+            : 'Tap any character to hear & explore (A to Z):'}
         </span>
 
-        {/* Scrollable / Responsive Letter Character Badges */}
-        <div className="w-full flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap max-h-36 overflow-y-auto scrollbar-none p-1">
+        {/* Clean Responsive 26-Letter Grid without cutoffs */}
+        <div className="w-full flex items-center justify-center gap-1 sm:gap-1.5 md:gap-2 flex-wrap p-0.5">
           {ALPHABET.map((char) => {
             const isSelected = selectedLetter === char;
             const isTarget = challengeTarget === char;
             return (
               <div
                 key={char}
-                className={`relative p-0.5 rounded-2xl transition-all ${
+                className={`relative p-0.5 rounded-xl transition-all ${
                   isSelected
-                    ? 'ring-4 ring-amber-400 scale-110 z-20'
+                    ? 'ring-3 sm:ring-4 ring-amber-400 scale-110 z-20'
                     : isTarget
-                    ? 'ring-4 ring-red-500 animate-pulse scale-105 z-10'
+                    ? 'ring-3 sm:ring-4 ring-red-500 animate-pulse scale-105 z-10'
                     : 'hover:scale-105'
                 }`}
               >

@@ -2,5 +2,7 @@
   "name": "ABC Kids World - Alphabet Games for Toddlers",
   "description": "Vibrant, educational ABC game suite for 3-4 year olds with Letter Friends, Balloon Pop, Monster Snack, Tracing, Phonics Matching, and ABC Musical Piano.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
