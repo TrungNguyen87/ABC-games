@@ -17,6 +17,8 @@ import DutchWorldGame from './components/games/DutchWorldGame';
 import StickerBookGame from './components/games/StickerBookGame';
 import LoreSpellerGame from './components/games/LoreSpellerGame';
 import LoreCharactersGame from './components/games/LoreCharactersGame';
+import ToddlerCountingGame from './components/games/ToddlerCountingGame';
+import ColorGradingGame from './components/games/ColorGradingGame';
 import VoiceSettingsModal from './components/VoiceSettingsModal';
 import GitHubPagesModal from './components/GitHubPagesModal';
 import { Play, Sparkles, Star, Award, Heart } from 'lucide-react';
@@ -105,16 +107,40 @@ export default function App() {
     borderShadow: string;
   }[] = [
     {
+      id: 'color-grading',
+      titleNl: '🎨 Kleur & Gradiënt ABC',
+      titleEn: '🎨 Color Grading ABC',
+      subtitleNl: 'Sorteer tinten, regenboog spectrum & verf met gradiënten!',
+      subtitleEn: 'Sort shades light-to-dark, rainbow spectrum & paint gradients!',
+      icon: '🎨',
+      badgeNl: '🎨 3 Speltypes!',
+      badgeEn: '🎨 3 Game Types!',
+      bgGradient: 'from-pink-500 via-purple-600 to-indigo-700',
+      borderShadow: '#701a75',
+    },
+    {
       id: 'lore-speller',
-      titleNl: '🎃 Halloween Spellen',
-      titleEn: '🎃 Halloween Speller',
-      subtitleNl: 'Spel spookjes & woordjes met Alphabet Lore!',
-      subtitleEn: 'Spell spooky words with Alphabet Lore letters!',
+      titleNl: '🎃 Halloween & Woordjes',
+      titleEn: '🎃 Halloween & Words',
+      subtitleNl: 'Spel spookjes, fruit, speelgoed & dieren!',
+      subtitleEn: 'Spell spooky words, fruits, toys & animals!',
       icon: '👻',
-      badgeNl: '🎃 NIEUW!',
-      badgeEn: '🎃 NEW!',
+      badgeNl: '🎃 Randomizer!',
+      badgeEn: '🎃 Randomizer!',
       bgGradient: 'from-purple-700 via-indigo-700 to-slate-900',
       borderShadow: '#312e81',
+    },
+    {
+      id: 'toddler-counting',
+      titleNl: '🔢 Peuter Telspelletje',
+      titleEn: '🔢 Toddler Counting',
+      subtitleNl: 'Tel pompoenen, spookjes, appels & diertjes (1-10)!',
+      subtitleEn: 'Count pumpkins, ghosts, apples & animals (1-10)!',
+      icon: '🔢',
+      badgeNl: '🔢 NIEUW!',
+      badgeEn: '🔢 NEW!',
+      bgGradient: 'from-emerald-500 via-teal-600 to-cyan-700',
+      borderShadow: '#065f46',
     },
     {
       id: 'lore-characters',
@@ -289,7 +315,9 @@ export default function App() {
           currentMode === 'monster-snack' ||
           currentMode === 'dutch-world' ||
           currentMode === 'autumn-leaves' ||
-          currentMode === 'puddle-splash'
+          currentMode === 'puddle-splash' ||
+          currentMode === 'toddler-counting' ||
+          currentMode === 'color-grading'
             ? () => {
                 if (language === 'nl') {
                   sounds.speak('Kijk goed en tik op je antwoord!', 'nl');
@@ -359,6 +387,46 @@ export default function App() {
                 <span className="text-2xl animate-kid-bounce">👻</span>
                 <span>
                   {language === 'nl' ? 'HALLOWEEN SPELLEN! 🎃' : 'HALLOWEEN SPELLER! 🎃'}
+                </span>
+              </button>
+
+              {/* Color Grading CTA */}
+              <button
+                onClick={() => {
+                  sounds.playColorChime(0.6);
+                  fireConfettiBurst('rainbow');
+                  setCurrentMode('color-grading');
+                  if (language === 'nl') {
+                    sounds.speak('Welkom bij Kleur en Gradiënt Spelletjes!', 'nl');
+                  } else {
+                    sounds.speak('Welcome to Color Grading and Gradient Games!', 'en');
+                  }
+                }}
+                className="group px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#9d174d] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer animate-kid-bounce"
+              >
+                <span className="text-2xl animate-spin">🎨</span>
+                <span>
+                  {language === 'nl' ? 'KLEUR GRADIËNT! 🌈' : 'COLOR GRADING! 🌈'}
+                </span>
+              </button>
+
+              {/* Toddler Counting CTA */}
+              <button
+                onClick={() => {
+                  sounds.playPop();
+                  fireConfettiBurst('rainbow');
+                  setCurrentMode('toddler-counting');
+                  if (language === 'nl') {
+                    sounds.speak('Welkom bij het telspelletje! Laten we tellen!', 'nl');
+                  } else {
+                    sounds.speak('Welcome to the counting game! Let us count together!', 'en');
+                  }
+                }}
+                className="group px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#065f46] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer animate-kid-wiggle"
+              >
+                <span className="text-2xl animate-kid-bounce">🔢</span>
+                <span>
+                  {language === 'nl' ? 'TEL DE SPOOKJES & APPELS! 🍎' : 'COUNTING FUN! 🍎'}
                 </span>
               </button>
 
@@ -476,6 +544,20 @@ export default function App() {
         {/* Game 0: Halloween & Alphabet Lore Word Speller */}
         {currentMode === 'lore-speller' && (
           <LoreSpellerGame
+            onEarnStar={handleEarnStar}
+            onUnlockSticker={handleUnlockSticker}
+            language={language}
+          />
+        )}
+
+        {/* Game 0.2: Toddler Counting Game */}
+        {currentMode === 'toddler-counting' && (
+          <ToddlerCountingGame onEarnStar={handleEarnStar} language={language} />
+        )}
+
+        {/* Game 0.3: Color Grading ABC */}
+        {currentMode === 'color-grading' && (
+          <ColorGradingGame
             onEarnStar={handleEarnStar}
             onUnlockSticker={handleUnlockSticker}
             language={language}

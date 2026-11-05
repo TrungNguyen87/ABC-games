@@ -299,6 +299,41 @@ class SoundManager {
     } catch {}
   }
 
+  // Musical color chime for color grading / shade transitions
+  public playColorChime(ratio: number = 0.5) {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const baseFreq = 320 + Math.max(0, Math.min(1, ratio)) * 480; // 320Hz to 800Hz
+      const osc = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.25, now + 0.25);
+
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(baseFreq * 1.5, now);
+      osc2.frequency.exponentialRampToValueAtTime(baseFreq * 2, now + 0.2);
+
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+      osc.connect(gain);
+      osc2.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc2.start(now);
+      osc.stop(now + 0.3);
+      osc2.stop(now + 0.3);
+    } catch {}
+  }
+
   // Crunchy monster munch
   public playMunch() {
     if (this.isMuted) return;

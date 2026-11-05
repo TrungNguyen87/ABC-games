@@ -25,27 +25,37 @@ interface PoolLetter {
   used: boolean;
 }
 
+type SpellerCategory = 'all' | 'halloween' | 'fruits' | 'animals' | 'toys' | 'autumn';
+
 export default function LoreSpellerGame({
   onEarnStar,
   onUnlockSticker,
   language,
 }: LoreSpellerGameProps) {
-  const [category, setCategory] = useState<'all' | 'halloween' | 'autumn' | 'animals'>('halloween');
+  const [category, setCategory] = useState<SpellerCategory>('halloween');
   const [isSpookyHalloween, setIsSpookyHalloween] = useState<boolean>(true);
   const [showHelperSilhouette, setShowHelperSilhouette] = useState<boolean>(true);
-  const [wordIndex, setWordIndex] = useState<number>(0);
+  const [currentWord, setCurrentWord] = useState<SpellingWord>(() => {
+    const halloweenWords = SPELLING_WORDS.filter((w) => w.category === 'halloween');
+    return halloweenWords[Math.floor(Math.random() * halloweenWords.length)] || SPELLING_WORDS[0];
+  });
   const [isWordComplete, setIsWordComplete] = useState<boolean>(false);
   const [slots, setSlots] = useState<LetterSlot[]>([]);
   const [letterPool, setLetterPool] = useState<PoolLetter[]>([]);
   const [celebrationMessage, setCelebrationMessage] = useState<string>('');
 
-  // Filter words by selected category
-  const activeWords = useMemo(() => {
-    if (category === 'all') return SPELLING_WORDS;
-    return SPELLING_WORDS.filter((w) => w.category === category);
-  }, [category]);
+  // Helper to pick a non-repeating random word
+  const pickNewRandomWord = (selectedCat: SpellerCategory, currentId?: string) => {
+    const pool =
+      selectedCat === 'all'
+        ? SPELLING_WORDS
+        : SPELLING_WORDS.filter((w) => w.category === selectedCat);
 
-  const currentWord: SpellingWord = activeWords[wordIndex % activeWords.length] || SPELLING_WORDS[0];
+    const candidates = pool.length > 1 ? pool.filter((w) => w.id !== currentId) : pool;
+    const chosen = candidates[Math.floor(Math.random() * candidates.length)] || pool[0] || SPELLING_WORDS[0];
+    setCurrentWord(chosen);
+  };
+
   const targetWord = (language === 'nl' ? currentWord.wordNl : currentWord.wordEn).toUpperCase();
 
   // Setup current word slots and letter choices
@@ -97,7 +107,7 @@ export default function LoreSpellerGame({
         : `Can you spell ${wordSpoken}? ${hint}`,
       language
     );
-  }, [wordIndex, targetWord, language, isSpookyHalloween]);
+  }, [currentWord, targetWord, language, isSpookyHalloween]);
 
   const handleSpeakWord = () => {
     const wordSpoken = language === 'nl' ? currentWord.wordNl : currentWord.wordEn;
@@ -210,7 +220,7 @@ export default function LoreSpellerGame({
 
   const handleNextWord = () => {
     sounds.playPop();
-    setWordIndex((prev) => prev + 1);
+    pickNewRandomWord(category, currentWord.id);
   };
 
   return (
@@ -240,8 +250,8 @@ export default function LoreSpellerGame({
         )}
       </div>
 
-      {/* Top Controls: Spooky Halloween Toggle, Hint Helper, Category Pills */}
-      <div className="relative z-10 w-full max-w-4xl flex flex-wrap items-center justify-between gap-2 bg-black/20 backdrop-blur-md px-3 py-2 rounded-2xl border border-white/20">
+      {/* Top Controls: Spooky Halloween Toggle, Categories, Random Word Button, Hint Helper */}
+      <div className="relative z-10 w-full max-w-4xl flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 bg-black/20 backdrop-blur-md px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl border border-white/20">
         {/* Halloween Mode Switch */}
         <button
           onClick={() => {
@@ -264,7 +274,7 @@ export default function LoreSpellerGame({
               );
             }
           }}
-          className={`px-3 py-1.5 rounded-full font-black text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-md cursor-pointer ${
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full font-black text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-md cursor-pointer ${
             isSpookyHalloween
               ? 'bg-amber-500 text-slate-950 shadow-amber-500/50 hover:bg-amber-400'
               : 'bg-indigo-600 text-white hover:bg-indigo-500'
@@ -272,35 +282,37 @@ export default function LoreSpellerGame({
         >
           {isSpookyHalloween ? (
             <>
-              <Moon className="w-4 h-4 fill-current" />
-              <span>🎃 Halloween Lore</span>
+              <Moon className="w-3.5 h-3.5 fill-current" />
+              <span>🎃 Halloween</span>
             </>
           ) : (
             <>
-              <Sun className="w-4 h-4" />
-              <span>🌈 Zonnige Lore</span>
+              <Sun className="w-3.5 h-3.5" />
+              <span>🌈 Zonnig</span>
             </>
           )}
         </button>
 
-        {/* Category Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
+        {/* Category Pills (Halloween, Fruit, Animals, Toys, Autumn, All) */}
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-full">
           {[
-            { id: 'halloween', labelNl: '🎃 Halloween', labelEn: '🎃 Spooky' },
-            { id: 'autumn', labelNl: '🍂 Herfst', labelEn: '🍂 Autumn' },
-            { id: 'animals', labelNl: '🐾 Dieren', labelEn: '🐾 Animals' },
-            { id: 'all', labelNl: '⭐ Alles', labelEn: '⭐ All Words' },
+            { id: 'halloween' as const, labelNl: '🎃 Halloween', labelEn: '🎃 Spooky' },
+            { id: 'fruits' as const, labelNl: '🍎 Fruit & Eten', labelEn: '🍎 Fruit' },
+            { id: 'animals' as const, labelNl: '🐾 Dieren', labelEn: '🐾 Animals' },
+            { id: 'toys' as const, labelNl: '🧸 Speelgoed', labelEn: '🧸 Toys' },
+            { id: 'autumn' as const, labelNl: '🍂 Herfst', labelEn: '🍂 Autumn' },
+            { id: 'all' as const, labelNl: '⭐ Alles', labelEn: '⭐ All' },
           ].map((cat) => (
             <button
               key={cat.id}
               onClick={() => {
                 sounds.playPop();
-                setCategory(cat.id as any);
-                setWordIndex(0);
+                setCategory(cat.id);
+                pickNewRandomWord(cat.id);
               }}
-              className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              className={`px-2 sm:px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 category === cat.id
-                  ? 'bg-white text-indigo-900 shadow-sm font-black'
+                  ? 'bg-white text-indigo-950 shadow-sm font-black scale-105'
                   : 'bg-white/20 text-white hover:bg-white/30'
               }`}
             >
@@ -309,22 +321,37 @@ export default function LoreSpellerGame({
           ))}
         </div>
 
-        {/* Hint Silhouette Toggle for 3-Year-Olds */}
-        <button
-          onClick={() => {
-            sounds.playPop();
-            setShowHelperSilhouette(!showHelperSilhouette);
-          }}
-          title={language === 'nl' ? 'Hulp letters aan/uit' : 'Toggle letter silhouette hint'}
-          className={`px-2.5 py-1.5 rounded-full text-xs font-black flex items-center gap-1 cursor-pointer transition-all ${
-            showHelperSilhouette
-              ? 'bg-yellow-400 text-yellow-950 shadow-sm'
-              : 'bg-white/20 text-white hover:bg-white/30'
-          }`}
-        >
-          <Lightbulb className="w-3.5 h-3.5 fill-current" />
-          <span>{language === 'nl' ? 'Hulpvorm' : 'Hint'}</span>
-        </button>
+        {/* Right Action Buttons: 🎲 Random Word & 💡 Hint */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              sounds.playPop();
+              sounds.playSparkle();
+              pickNewRandomWord(category, currentWord.id);
+            }}
+            title={language === 'nl' ? 'Ander willekeurig woordje' : 'Pick new random word'}
+            className="px-2.5 py-1 sm:py-1.5 rounded-full text-xs font-black flex items-center gap-1 cursor-pointer bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white shadow-md active:scale-95 transition-transform"
+          >
+            <span>🎲</span>
+            <span className="hidden sm:inline">{language === 'nl' ? 'Nieuw Woord' : 'Random Word'}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              sounds.playPop();
+              setShowHelperSilhouette(!showHelperSilhouette);
+            }}
+            title={language === 'nl' ? 'Hulp letters aan/uit' : 'Toggle letter silhouette hint'}
+            className={`px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full text-xs font-black flex items-center gap-1 cursor-pointer transition-all ${
+              showHelperSilhouette
+                ? 'bg-yellow-400 text-yellow-950 shadow-sm'
+                : 'bg-white/20 text-white hover:bg-white/30'
+            }`}
+          >
+            <Lightbulb className="w-3.5 h-3.5 fill-current" />
+            <span className="hidden sm:inline">{language === 'nl' ? 'Hulp' : 'Hint'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Target Word Presentation Card */}
@@ -361,7 +388,7 @@ export default function LoreSpellerGame({
                 type="button"
                 onClick={() => handleRemoveFromSlot(slot.index)}
                 disabled={!hasLetter || isWordComplete}
-                className={`relative w-12 h-16 sm:w-15 sm:h-20 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 border-2 sm:border-3 ${
+                className={`relative w-11 h-15 sm:w-14 sm:h-18 md:w-16 md:h-20 rounded-2xl flex flex-col items-center justify-center transition-all duration-200 border-2 sm:border-3 ${
                   hasLetter
                     ? 'border-white/80 cursor-pointer active:scale-95'
                     : 'border-dashed border-white/50 bg-white/15'

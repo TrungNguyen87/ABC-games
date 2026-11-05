@@ -4,6 +4,8 @@ export type VoiceStyle = 'soft-lady' | 'sweet-story' | 'cheerful';
 
 export type GameMode =
   | 'menu'
+  | 'color-grading'
+  | 'toddler-counting'
   | 'lore-speller'
   | 'lore-characters'
   | 'letter-friends'

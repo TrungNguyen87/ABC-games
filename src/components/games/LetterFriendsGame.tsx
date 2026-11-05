@@ -44,12 +44,13 @@ export default function LetterFriendsGame({
     const roundOptions = [...wrongSelected, randomTarget].sort(() => 0.5 - Math.random());
     setOptions(roundOptions);
 
-    // Speak after slight delay
+    // Speak after slight delay: teach the word starting with that letter
+    const targetWord = language === 'nl' ? randomTarget.wordNl || randomTarget.word : randomTarget.word;
     setTimeout(() => {
       if (language === 'nl') {
-        sounds.speak(`Kun je de letter ${randomTarget.letter} vinden?`, 'nl');
+        sounds.speak(`Kun je de ${randomTarget.letter} van ${targetWord} vinden?`, 'nl');
       } else {
-        sounds.speak(`Can you find the letter ${randomTarget.letter}?`, 'en');
+        sounds.speak(`Can you find the letter ${randomTarget.letter} for ${targetWord}?`, 'en');
       }
     }, 400);
   }, [optionCount, language]);
@@ -61,14 +62,17 @@ export default function LetterFriendsGame({
   const handleCardClick = (letter: LetterInfo) => {
     if (isLocked) return;
 
-    const wordName = language === 'nl' ? letter.wordNl || letter.word : letter.word;
+    const targetWord = language === 'nl' ? targetLetter.wordNl || targetLetter.word : targetLetter.word;
+    const clickedWord = language === 'nl' ? letter.wordNl || letter.word : letter.word;
 
     if (letter.letter === targetLetter.letter) {
       // Success!
       setIsLocked(true);
       setSelectedLetter(letter.letter);
       setFeedbackText(
-        language === 'nl' ? `GOED ZO! Dat is ${letter.letter}!` : `YAY! That's ${letter.letter}!`
+        language === 'nl'
+          ? `GOED ZO! ${letter.letter} van ${targetWord}! ${targetLetter.emoji}`
+          : `YAY! ${letter.letter} for ${targetWord}! ${targetLetter.emoji}`
       );
       sounds.playChime();
       fireConfettiBurst();
@@ -80,11 +84,11 @@ export default function LetterFriendsGame({
 
       if (language === 'nl') {
         sounds.speak(
-          `Goed zo! Je hebt ${letter.letter} gevonden! ${letter.letter} is voor ${wordName}!`,
+          `Geweldig! De ${letter.letter} van ${targetWord}!`,
           'nl'
         );
       } else {
-        sounds.speak(`Yay! You found ${letter.letter}! ${letter.letter} is for ${wordName}!`, 'en');
+        sounds.speak(`Awesome! ${letter.letter} for ${targetWord}!`, 'en');
       }
 
       setTimeout(() => {
@@ -96,11 +100,11 @@ export default function LetterFriendsGame({
       sounds.playBoing();
       if (language === 'nl') {
         sounds.speak(
-          `Oei! Dat is ${letter.letter}. Kun je de letter ${targetLetter.letter} vinden?`,
+          `Dat is de ${letter.letter} van ${clickedWord}. Zoek de ${targetLetter.letter} van ${targetWord}!`,
           'nl'
         );
       } else {
-        sounds.speak(`Oops! That's ${letter.letter}. Can you find ${targetLetter.letter}?`, 'en');
+        sounds.speak(`That's ${letter.letter} for ${clickedWord}. Find ${targetLetter.letter} for ${targetWord}!`, 'en');
       }
       setTimeout(() => {
         setWrongLetter(null);
@@ -110,10 +114,11 @@ export default function LetterFriendsGame({
 
   const handleRepeatVoice = () => {
     if (!isLocked) {
+      const targetWord = language === 'nl' ? targetLetter.wordNl || targetLetter.word : targetLetter.word;
       if (language === 'nl') {
-        sounds.speak(`Zoek de letter ${targetLetter.letter}!`, 'nl');
+        sounds.speak(`Zoek de ${targetLetter.letter} van ${targetWord}!`, 'nl');
       } else {
-        sounds.speak(`Find the letter ${targetLetter.letter}!`, 'en');
+        sounds.speak(`Find the letter ${targetLetter.letter} for ${targetWord}!`, 'en');
       }
     }
   };
@@ -169,16 +174,16 @@ export default function LetterFriendsGame({
           </button>
         </div>
 
-        {/* Big visual cue for 3-4 year olds */}
+        {/* Big visual cue for 3-4 year olds showing the word starting with that letter */}
         <div
           onClick={handleRepeatVoice}
-          className="flex items-center gap-3 bg-white/30 hover:bg-white/40 backdrop-blur-md px-6 py-2.5 rounded-full border-2 border-white/60 shadow-lg cursor-pointer transition-all active:scale-95"
+          className="flex items-center gap-2 sm:gap-3 bg-white/30 hover:bg-white/40 backdrop-blur-md px-4 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-white/60 shadow-lg cursor-pointer transition-all active:scale-95"
         >
-          <span className="text-2xl sm:text-3xl text-white font-extrabold drop-shadow">
-            {language === 'nl' ? 'Zoek de letter' : 'Find the letter'}
+          <span className="text-xl sm:text-2xl text-white font-extrabold drop-shadow">
+            {language === 'nl' ? 'Zoek de' : 'Find the'}
           </span>
           <span
-            className="text-4xl sm:text-5xl font-black px-4 py-1 rounded-2xl text-white drop-shadow-md animate-kid-bounce"
+            className="text-3xl sm:text-4xl font-black px-3.5 py-0.5 rounded-xl text-white drop-shadow-md animate-kid-bounce"
             style={{
               backgroundColor: targetLetter.color,
               boxShadow: `0 4px 0 ${targetLetter.shadowColor}`,
@@ -186,7 +191,12 @@ export default function LetterFriendsGame({
           >
             {targetLetter.letter}
           </span>
-          <span className="text-3xl drop-shadow">{targetLetter.emoji}</span>
+          <span className="text-xl sm:text-2xl text-white font-black drop-shadow">
+            {language === 'nl'
+              ? `van ${targetLetter.wordNl || targetLetter.word}`
+              : `for ${targetLetter.word}`}
+          </span>
+          <span className="text-2xl sm:text-3xl drop-shadow animate-kid-bounce">{targetLetter.emoji}</span>
         </div>
       </div>
 

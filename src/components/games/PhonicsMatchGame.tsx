@@ -39,12 +39,8 @@ export default function PhonicsMatchGame({
     setPictureOptions(options);
 
     setTimeout(() => {
-      if (language === 'nl') {
-        sounds.speak(`Welk plaatje begint met de letter ${target.letter}?`, 'nl');
-      } else {
-        sounds.speak(`Which one starts with the letter ${target.letter}?`, 'en');
-      }
-    }, 400);
+      sounds.speak(target.letter, language);
+    }, 300);
   }, [language]);
 
   useEffect(() => {
@@ -65,36 +61,18 @@ export default function PhonicsMatchGame({
       onEarnStar();
       if (onUnlockSticker) onUnlockSticker(targetLetter.letter);
 
-      if (language === 'nl') {
-        sounds.speak(
-          `Ja! ${targetLetter.letter} is voor ${currentWord}! ${item.phonicsNl || item.phonics}, ${item.phonicsNl || item.phonics}, ${currentWord}!`,
-          'nl'
-        );
-      } else {
-        sounds.speak(
-          `Yes! ${targetLetter.letter} is for ${currentWord}! ${item.phonics}, ${item.phonics}, ${currentWord}!`,
-          'en'
-        );
-      }
+      // Directly spell the word letter-by-letter, then speak the full word
+      const spelledLetters = currentWord.toUpperCase().split('').join(', ');
+      sounds.speak(`${spelledLetters}! ${currentWord}!`, language);
 
       setTimeout(() => {
         startRound();
       }, 2400);
     } else {
-      // Gentle mismatch
+      // Gentle mismatch - pronounce only the word tapped without any repeating lecture phrase
       setWrongWord(currentWord);
       sounds.playBoing();
-      if (language === 'nl') {
-        sounds.speak(
-          `Dat is ${currentWord}. Zoek een woordje dat begint met ${targetLetter.letter}!`,
-          'nl'
-        );
-      } else {
-        sounds.speak(
-          `That's ${currentWord}. Find what starts with ${targetLetter.letter}!`,
-          'en'
-        );
-      }
+      sounds.speak(currentWord, language);
 
       setTimeout(() => {
         setWrongWord(null);
@@ -104,22 +82,15 @@ export default function PhonicsMatchGame({
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-between py-2 px-4 max-w-4xl mx-auto select-none">
-      {/* Top Question Header */}
+      {/* Top Header */}
       <div className="flex flex-col items-center mt-1">
         <div className="flex items-center gap-3">
           <div
-            onClick={() =>
-              sounds.speak(
-                language === 'nl'
-                  ? `Welk plaatje begint met de letter ${targetLetter.letter}?`
-                  : `Which one starts with the letter ${targetLetter.letter}?`,
-                language
-              )
-            }
+            onClick={() => sounds.speak(targetLetter.letter, language)}
             className="flex items-center gap-3 bg-white/30 hover:bg-white/40 backdrop-blur-md px-6 py-2 rounded-full border-2 border-white/60 shadow-lg cursor-pointer active:scale-95 transition-all"
           >
             <span className="text-xl sm:text-2xl font-black text-white drop-shadow">
-              {language === 'nl' ? 'Wat begint met' : 'Which one starts with'}
+              Letter
             </span>
             <span
               className="text-4xl font-black px-4 py-1 rounded-2xl text-white drop-shadow-md"
@@ -132,7 +103,7 @@ export default function PhonicsMatchGame({
           <button
             onClick={startRound}
             className="w-10 h-10 rounded-full bg-white/30 hover:bg-white/50 text-white flex items-center justify-center transition-all cursor-pointer"
-            title="Ander letter"
+            title={language === 'nl' ? 'Nieuwe letter' : 'Next letter'}
           >
             <RefreshCw className="w-5 h-5" />
           </button>
@@ -191,11 +162,17 @@ export default function PhonicsMatchGame({
         </div>
       </div>
 
-      {/* Bottom hint */}
-      <div className="h-10 text-white font-extrabold text-sm sm:text-base drop-shadow">
-        {language === 'nl'
-          ? `Tik op het plaatje dat begint met ${targetLetter.letter}!`
-          : `Tap the picture that begins with ${targetLetter.letter}!`}
+      {/* Bottom hint: Displays spelled word letter-by-letter */}
+      <div className="h-10 text-white font-extrabold text-sm sm:text-base drop-shadow flex items-center justify-center">
+        {selectedWord ? (
+          <span className="text-amber-200 text-xl tracking-widest font-black animate-kid-bounce bg-black/25 px-4 py-1 rounded-full border border-white/30">
+            {selectedWord.toUpperCase().split('').join(' · ')}
+          </span>
+        ) : (
+          <span className="text-white/80 text-sm font-bold">
+            {language === 'nl' ? `Woordje met letter ${targetLetter.letter}` : `Word with letter ${targetLetter.letter}`}
+          </span>
+        )}
       </div>
     </div>
   );
