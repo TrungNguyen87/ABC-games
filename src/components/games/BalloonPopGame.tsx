@@ -181,23 +181,15 @@ export default function BalloonPopGame({
 
         const newTarget = ALPHABET_DATA[Math.floor(Math.random() * ALPHABET_DATA.length)];
         setTargetLetter(newTarget);
+        const newWord = language === 'nl' ? newTarget.wordNl || newTarget.word : newTarget.word;
         setTimeout(() => {
-          if (language === 'nl') {
-            sounds.speak(`Nu plop de letter ${newTarget.letter}!`, 'nl');
-          } else {
-            sounds.speak(`Now find and pop ${newTarget.letter}!`, 'en');
-          }
+          // Just say the new word, don't repeat questions
+          sounds.speak(newWord, language);
         }, 1200);
       } else {
         sounds.playBoing();
-        if (language === 'nl') {
-          sounds.speak(
-            `Dat is ${balloon.letter.letter}. Zoek ${targetLetter.letter}!`,
-            'nl'
-          );
-        } else {
-          sounds.speak(`That's ${balloon.letter.letter}. Find ${targetLetter.letter}!`, 'en');
-        }
+        // Just say the popped word, no repeating lecture
+        sounds.speak(wordName, language);
       }
     } else {
       sounds.speak(`${balloon.letter.letter}! ${wordName}!`, language);

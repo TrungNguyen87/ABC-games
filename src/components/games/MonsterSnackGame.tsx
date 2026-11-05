@@ -21,6 +21,7 @@ export default function MonsterSnackGame({
   const [monsterState, setMonsterState] = useState<'hungry' | 'chewing' | 'happy' | 'disgusted'>('hungry');
   const [isLocked, setIsLocked] = useState(false);
   const [speechBubble, setSpeechBubble] = useState<string>('');
+  const hasIntroducedRef = React.useRef(false);
 
   const nextRound = useCallback(() => {
     setIsLocked(false);
@@ -36,12 +37,19 @@ export default function MonsterSnackGame({
     const cookies = [...wrong, target].sort(() => 0.5 - Math.random());
     setCookieOptions(cookies);
 
-    if (language === 'nl') {
-      setSpeechBubble(`Voer mij letter ${target.letter}!`);
-      sounds.speak(`Voer mij de letter ${target.letter}! Lekker lekker!`, 'nl');
+    const targetWord = language === 'nl' ? target.wordNl || target.word : target.word;
+    setSpeechBubble(targetWord);
+    // Only speak the introductory phrase once
+    if (!hasIntroducedRef.current) {
+      hasIntroducedRef.current = true;
+      if (language === 'nl') {
+        sounds.speak(`Voer het monster! ${targetWord}!`, 'nl');
+      } else {
+        sounds.speak(`Feed the monster! ${targetWord}!`, 'en');
+      }
     } else {
-      setSpeechBubble(`Feed me letter ${target.letter}!`);
-      sounds.speak(`Feed me the letter ${target.letter}! Yum yum!`, 'en');
+      // Just say the word
+      sounds.speak(targetWord, language);
     }
   }, [language]);
 
@@ -59,7 +67,7 @@ export default function MonsterSnackGame({
       setIsLocked(true);
       setMonsterState('chewing');
       sounds.playMunch();
-      setSpeechBubble(language === 'nl' ? 'HAP! HAP! Lekker!' : 'CHOMP! CHOMP! Yum!');
+      setSpeechBubble(cookieWord);
 
       setTimeout(() => {
         setMonsterState('happy');
@@ -69,47 +77,25 @@ export default function MonsterSnackGame({
         onEarnStar();
         if (onUnlockSticker) onUnlockSticker(cookie.letter);
 
-        if (language === 'nl') {
-          setSpeechBubble(`Heerlijke ${cookie.letter} voor ${cookieWord}!`);
-          sounds.speak(
-            `Mmm, heerlijke letter ${cookie.letter}! ${cookie.letter} is voor ${cookieWord}!`,
-            'nl'
-          );
-        } else {
-          setSpeechBubble(`Delicious ${cookie.letter} for ${cookieWord}!`);
-          sounds.speak(
-            `Mmm, delicious ${cookie.letter}! ${cookie.letter} is for ${cookieWord}!`,
-            'en'
-          );
-        }
-      }, 900);
+        setSpeechBubble(cookieWord);
+        // Just say the word, do not spell it
+        sounds.speak(cookieWord, language);
+      }, 700);
 
       setTimeout(() => {
         nextRound();
-      }, 2700);
+      }, 2100);
     } else {
-      // Monster does not like wrong cookie
+      // Wrong cookie
       setMonsterState('disgusted');
       sounds.playBoing();
-      if (language === 'nl') {
-        setSpeechBubble(`Bah! Geen ${cookie.letter}! Ik wil ${targetLetter.letter}!`);
-        sounds.speak(
-          `Bleh! Dat is ${cookie.letter}! Ik wil letter ${targetLetter.letter}!`,
-          'nl'
-        );
-      } else {
-        setSpeechBubble(`Yuck! Not ${cookie.letter}! I want ${targetLetter.letter}!`);
-        sounds.speak(`Blech! That's ${cookie.letter}! I want letter ${targetLetter.letter}!`, 'en');
-      }
+      // Just say the clicked word
+      sounds.speak(cookieWord, language);
 
       setTimeout(() => {
         setMonsterState('hungry');
-        setSpeechBubble(
-          language === 'nl'
-            ? `Voer mij letter ${targetLetter.letter}!`
-            : `Feed me letter ${targetLetter.letter}!`
-        );
-      }, 1400);
+        setSpeechBubble(targetLetter.wordNl || targetLetter.word);
+      }, 700);
     }
   };
 

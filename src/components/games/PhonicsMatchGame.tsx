@@ -38,8 +38,10 @@ export default function PhonicsMatchGame({
     const options = [...wrong, target].sort(() => 0.5 - Math.random());
     setPictureOptions(options);
 
+    const targetWord = language === 'nl' ? target.wordNl || target.word : target.word;
     setTimeout(() => {
-      sounds.speak(target.letter, language);
+      // Just say the word, no repeating finding questions
+      sounds.speak(targetWord, language);
     }, 300);
   }, [language]);
 
@@ -61,13 +63,12 @@ export default function PhonicsMatchGame({
       onEarnStar();
       if (onUnlockSticker) onUnlockSticker(targetLetter.letter);
 
-      // Directly spell the word letter-by-letter, then speak the full word
-      const spelledLetters = currentWord.toUpperCase().split('').join(', ');
-      sounds.speak(`${spelledLetters}! ${currentWord}!`, language);
+      // Just say the word, don't spell it!
+      sounds.speak(currentWord, language);
 
       setTimeout(() => {
         startRound();
-      }, 2400);
+      }, 1800);
     } else {
       // Gentle mismatch - pronounce only the word tapped without any repeating lecture phrase
       setWrongWord(currentWord);

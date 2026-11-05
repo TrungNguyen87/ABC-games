@@ -25,6 +25,7 @@ export default function LetterFriendsGame({
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [feedbackText, setFeedbackText] = useState<string>('');
   const [optionCount, setOptionCount] = useState<number>(3); // 2, 3 or 4
+  const hasIntroducedRef = React.useRef<boolean>(false);
 
   const startNewRound = useCallback(() => {
     setIsLocked(false);
@@ -44,15 +45,22 @@ export default function LetterFriendsGame({
     const roundOptions = [...wrongSelected, randomTarget].sort(() => 0.5 - Math.random());
     setOptions(roundOptions);
 
-    // Speak after slight delay: teach the word starting with that letter
     const targetWord = language === 'nl' ? randomTarget.wordNl || randomTarget.word : randomTarget.word;
+
     setTimeout(() => {
-      if (language === 'nl') {
-        sounds.speak(`Kun je de ${randomTarget.letter} van ${targetWord} vinden?`, 'nl');
+      if (!hasIntroducedRef.current) {
+        // Only ask the question ONE time on game start
+        hasIntroducedRef.current = true;
+        if (language === 'nl') {
+          sounds.speak(`Zoek de letter van ${targetWord}!`, 'nl');
+        } else {
+          sounds.speak(`Find the letter for ${targetWord}!`, 'en');
+        }
       } else {
-        sounds.speak(`Can you find the letter ${randomTarget.letter} for ${targetWord}?`, 'en');
+        // Subsequent rounds: just say the word cleanly, no repeating question!
+        sounds.speak(targetWord, language);
       }
-    }, 400);
+    }, 350);
   }, [optionCount, language]);
 
   useEffect(() => {
@@ -71,8 +79,8 @@ export default function LetterFriendsGame({
       setSelectedLetter(letter.letter);
       setFeedbackText(
         language === 'nl'
-          ? `GOED ZO! ${letter.letter} van ${targetWord}! ${targetLetter.emoji}`
-          : `YAY! ${letter.letter} for ${targetWord}! ${targetLetter.emoji}`
+          ? `${targetWord}! ${targetLetter.emoji}`
+          : `${targetWord}! ${targetLetter.emoji}`
       );
       sounds.playChime();
       fireConfettiBurst();
@@ -82,30 +90,18 @@ export default function LetterFriendsGame({
         onUnlockSticker(letter.letter);
       }
 
-      if (language === 'nl') {
-        sounds.speak(
-          `Geweldig! De ${letter.letter} van ${targetWord}!`,
-          'nl'
-        );
-      } else {
-        sounds.speak(`Awesome! ${letter.letter} for ${targetWord}!`, 'en');
-      }
+      // Just say the word! Do not spell it
+      sounds.speak(targetWord, language);
 
       setTimeout(() => {
         startNewRound();
-      }, 2300);
+      }, 1900);
     } else {
-      // Gentle mistake
+      // Gentle mistake - just say the clicked word, never repeat the finding question
       setWrongLetter(letter.letter);
       sounds.playBoing();
-      if (language === 'nl') {
-        sounds.speak(
-          `Dat is de ${letter.letter} van ${clickedWord}. Zoek de ${targetLetter.letter} van ${targetWord}!`,
-          'nl'
-        );
-      } else {
-        sounds.speak(`That's ${letter.letter} for ${clickedWord}. Find ${targetLetter.letter} for ${targetWord}!`, 'en');
-      }
+      sounds.speak(clickedWord, language);
+
       setTimeout(() => {
         setWrongLetter(null);
       }, 700);
@@ -115,11 +111,8 @@ export default function LetterFriendsGame({
   const handleRepeatVoice = () => {
     if (!isLocked) {
       const targetWord = language === 'nl' ? targetLetter.wordNl || targetLetter.word : targetLetter.word;
-      if (language === 'nl') {
-        sounds.speak(`Zoek de ${targetLetter.letter} van ${targetWord}!`, 'nl');
-      } else {
-        sounds.speak(`Find the letter ${targetLetter.letter} for ${targetWord}!`, 'en');
-      }
+      // Just say the word
+      sounds.speak(targetWord, language);
     }
   };
 
