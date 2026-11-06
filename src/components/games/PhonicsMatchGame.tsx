@@ -4,6 +4,7 @@ import { LetterInfo, Language } from '../../types/game';
 import LetterAvatar from '../LetterAvatar';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Sparkles, RefreshCw } from 'lucide-react';
 
 interface PhonicsMatchGameProps {
@@ -58,8 +59,12 @@ export default function PhonicsMatchGame({
       // Correct match!
       setIsLocked(true);
       setSelectedWord(currentWord);
-      sounds.playChime();
+      sounds.playTada();
       fireConfettiBurst();
+      triggerKidCheer({
+        message: language === 'nl' ? 'GOED ZO!' : 'SUPER!',
+        emoji: targetLetter.emoji,
+      });
       onEarnStar();
       if (onUnlockSticker) onUnlockSticker(targetLetter.letter);
 

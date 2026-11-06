@@ -3,6 +3,7 @@ import { GameMode, LetterInfo, Language, VoiceStyle } from './types/game';
 import { ALPHABET_DATA } from './data/alphabetData';
 import { sounds } from './utils/soundEffects';
 import ConfettiCanvas, { fireConfettiBurst } from './components/ConfettiCanvas';
+import CheerCelebration, { triggerKidCheer } from './components/CheerCelebration';
 import GameHeader from './components/GameHeader';
 import LetterAvatar from './components/LetterAvatar';
 import LetterFriendsGame from './components/games/LetterFriendsGame';
@@ -60,6 +61,7 @@ export default function App() {
   const handleEarnStar = () => {
     setStars((prev) => prev + 1);
     setStreak((prev) => prev + 1);
+    triggerKidCheer({ type: 'star' });
   };
 
   const handleUnlockSticker = (letter: string) => {
@@ -299,15 +301,14 @@ export default function App() {
       {/* Confetti celebration canvas */}
       <ConfettiCanvas />
 
+      {/* Cheerful Kids Celebration Overlays & Milestone Fanfare */}
+      <CheerCelebration streak={streak} language={language} />
+
       {/* Top Header Bar */}
       <GameHeader
         onBackToMenu={() => {
           setCurrentMode('menu');
-          if (language === 'nl') {
-            sounds.speak('Kies een leuk spelletje!', 'nl');
-          } else {
-            sounds.speak('Pick a fun game to play!', 'en');
-          }
+          sounds.speak(language === 'nl' ? 'Kies een leuk spelletje!' : 'Pick a fun game!', language);
         }}
         onRepeatAudio={
           currentMode === 'letter-friends' ||
@@ -319,11 +320,12 @@ export default function App() {
           currentMode === 'toddler-counting' ||
           currentMode === 'color-grading'
             ? () => {
-                if (language === 'nl') {
-                  sounds.speak('Kijk goed en tik op je antwoord!', 'nl');
-                } else {
-                  sounds.speak('Look carefully and tap your answer!', 'en');
-                }
+                const cheersNl = ['Jij kan dit!', 'Goed kijken!', 'Wat denk jij?', 'Tik maar!', 'Super bezig!'];
+                const cheersEn = ['You can do it!', 'Look closely!', 'What do you think?', 'Tap your pick!', 'Doing great!'];
+                const pick = language === 'nl'
+                  ? cheersNl[Math.floor(Math.random() * cheersNl.length)]
+                  : cheersEn[Math.floor(Math.random() * cheersEn.length)];
+                sounds.speak(pick, language);
               }
             : undefined
         }

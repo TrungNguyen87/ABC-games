@@ -3,6 +3,7 @@ import { ALPHABET_DATA } from '../../data/alphabetData';
 import { LetterInfo, Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Sparkles } from 'lucide-react';
 
 interface MonsterSnackGameProps {
@@ -72,8 +73,12 @@ export default function MonsterSnackGame({
       setTimeout(() => {
         setMonsterState('happy');
         sounds.playBurp();
-        sounds.playChime();
+        sounds.playTada();
         fireConfettiBurst();
+        triggerKidCheer({
+          message: language === 'nl' ? 'LEKKER GEGETEN!' : 'YUMMY SNACK!',
+          emoji: '🍪',
+        });
         onEarnStar();
         if (onUnlockSticker) onUnlockSticker(cookie.letter);
 

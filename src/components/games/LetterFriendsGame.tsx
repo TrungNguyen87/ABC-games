@@ -4,6 +4,7 @@ import { LetterInfo, Language } from '../../types/game';
 import LetterAvatar from '../LetterAvatar';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Sparkles, RefreshCw } from 'lucide-react';
 
 interface LetterFriendsGameProps {
@@ -82,8 +83,12 @@ export default function LetterFriendsGame({
           ? `${targetWord}! ${targetLetter.emoji}`
           : `${targetWord}! ${targetLetter.emoji}`
       );
-      sounds.playChime();
+      sounds.playTada();
       fireConfettiBurst();
+      triggerKidCheer({
+        message: language === 'nl' ? 'GOED GEVONDEN!' : 'GREAT MATCH!',
+        emoji: targetLetter.emoji,
+      });
 
       onEarnStar();
       if (onUnlockSticker) {

@@ -3,6 +3,7 @@ import { DUTCH_WORLD_WORDS, ALPHABET_DATA } from '../../data/alphabetData';
 import { WordItem, Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Sparkles, Trophy, RefreshCw, Wind } from 'lucide-react';
 
 interface FallingAutumnItem {
@@ -44,8 +45,11 @@ export default function AutumnLeavesGame({
 
   const autumnWords = DUTCH_WORLD_WORDS.filter((w) => w.category === 'autumn');
 
+  const targetTimeoutRef = useRef<any>(null);
+
   // Choose target for Quest mode
   useEffect(() => {
+    if (targetTimeoutRef.current) clearTimeout(targetTimeoutRef.current);
     if (mode === 'target') {
       const random = autumnWords[Math.floor(Math.random() * autumnWords.length)];
       setTargetItem(random);
@@ -56,11 +60,14 @@ export default function AutumnLeavesGame({
       }
     } else {
       if (language === 'nl') {
-        sounds.speak('Vang de herfstblaadjes en eikeltjes in de mand!', 'nl');
+        sounds.speak('Herfstblaadjes vangen!', 'nl');
       } else {
-        sounds.speak('Catch the falling autumn leaves and acorns in the basket!', 'en');
+        sounds.speak('Autumn leaf catch!', 'en');
       }
     }
+    return () => {
+      if (targetTimeoutRef.current) clearTimeout(targetTimeoutRef.current);
+    };
   }, [mode, language]);
 
   // Falling Items Physics & Spawner
@@ -136,13 +143,13 @@ export default function AutumnLeavesGame({
 
   const handleCatchItem = (
     item: FallingAutumnItem,
-    e: React.MouseEvent | React.TouchEvent
+    e: React.MouseEvent
   ) => {
     sounds.playRustle();
 
     let clientX = window.innerWidth * (item.x / 100);
     let clientY = item.y;
-    if ('clientX' in e) {
+    if ('clientX' in e && e.clientX) {
       clientX = e.clientX;
       clientY = e.clientY;
     }
@@ -170,62 +177,63 @@ export default function AutumnLeavesGame({
     setItems((prev) => prev.filter((i) => i.id !== item.id));
 
     if (item.isSpecialGolden) {
-      sounds.playCheer();
+      sounds.playKidsCheer();
       fireConfettiBurst(clientX, clientY, 'autumn');
+      triggerKidCheer({
+        message: language === 'nl' ? 'GOUDEN HERFST!' : 'GOLDEN CATCH!',
+        emoji: '✨',
+        x: clientX,
+        y: clientY,
+      });
       onEarnStar();
-      if (language === 'nl') {
-        sounds.speak('Gouden herfstmagie! Wat een mooie vondst!', 'nl');
-      } else {
-        sounds.speak('Golden autumn magic! Beautiful catch!', 'en');
-      }
+      sounds.speak(
+        language === 'nl' ? 'Gouden magie!' : 'Golden magic!',
+        language
+      );
       return;
     }
 
     if (mode === 'target') {
       if (item.wordItem.id === targetItem.id) {
-        sounds.playChime();
+        sounds.playTada();
         fireConfettiBurst(clientX, clientY, 'autumn');
+        triggerKidCheer({
+          message: language === 'nl' ? 'GOED GEVANGEN!' : 'GREAT CATCH!',
+          emoji: item.wordItem.emoji,
+          x: clientX,
+          y: clientY,
+        });
         onEarnStar();
 
-        if (language === 'nl') {
-          sounds.speak(
-            `Geweldig! Je hebt ${item.wordItem.articleNl} ${item.wordItem.nl} gevangen!`,
-            'nl'
-          );
-        } else {
-          sounds.speak(`Awesome! You caught the ${item.wordItem.en}!`, 'en');
-        }
+        // Direct concise praise without repeating long sentences
+        sounds.speak(
+          language === 'nl'
+            ? `Super! ${item.wordItem.nl}!`
+            : `Awesome! ${item.wordItem.en}!`,
+          language
+        );
 
-        // Pick next target
+        // Pick next target cleanly
         const newTarget = autumnWords[Math.floor(Math.random() * autumnWords.length)];
         setTargetItem(newTarget);
-        setTimeout(() => {
-          if (language === 'nl') {
-            sounds.speak(`Vang nu ${newTarget.articleNl} ${newTarget.nl}!`, 'nl');
-          } else {
-            sounds.speak(`Now catch the ${newTarget.en}!`, 'en');
-          }
-        }, 1300);
+        if (targetTimeoutRef.current) clearTimeout(targetTimeoutRef.current);
+        targetTimeoutRef.current = setTimeout(() => {
+          const nextName = language === 'nl' ? newTarget.nl : newTarget.en;
+          sounds.speak(nextName, language);
+        }, 1100);
       } else {
         sounds.playBoing();
-        if (language === 'nl') {
-          sounds.speak(
-            `Dat is ${item.wordItem.articleNl} ${item.wordItem.nl}. Vang ${targetItem.articleNl} ${targetItem.nl}!`,
-            'nl'
-          );
-        } else {
-          sounds.speak(
-            `That's ${item.wordItem.en}. Catch the ${targetItem.en}!`,
-            'en'
-          );
-        }
+        // Just say the caught item without repeating lecture
+        const tappedName = language === 'nl' ? item.wordItem.nl : item.wordItem.en;
+        sounds.speak(tappedName, language);
       }
     } else {
-      // Free catch mode
+      // Free catch mode: short joyful sound cue
       const spokenName = language === 'nl' ? item.wordItem.nl : item.wordItem.en;
-      sounds.speak(`${spokenName}! ${item.wordItem.soundCue || ''}`, language);
+      sounds.speak(spokenName, language);
       if (Math.random() < 0.25) {
         onEarnStar();
+        triggerKidCheer({ emoji: item.wordItem.emoji, x: clientX, y: clientY });
       }
     }
   };
@@ -324,7 +332,6 @@ export default function AutumnLeavesGame({
             <div
               key={item.id}
               onClick={(e) => handleCatchItem(item, e)}
-              onTouchStart={(e) => handleCatchItem(item, e)}
               style={{
                 left: `${item.x}%`,
                 top: `${item.y}px`,

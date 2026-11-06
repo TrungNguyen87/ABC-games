@@ -3,6 +3,7 @@ import { ALPHABET_DATA } from '../../data/alphabetData';
 import { LetterInfo, Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Sparkles, RefreshCw } from 'lucide-react';
 
 interface WaterSplash {
@@ -26,10 +27,13 @@ export default function PuddleSplashGame({
   const [targetLetter, setTargetLetter] = useState<LetterInfo>(ALPHABET_DATA[0]);
   const [activePuddleIdx, setActivePuddleIdx] = useState<number | null>(null);
   const [splashes, setSplashes] = useState<WaterSplash[]>([]);
-  const [mode, setMode] = useState<'free' | 'target'>('free');
+  const [mode, setMode] = useState<'free' | 'target'>('target');
   const [feedback, setFeedback] = useState<string>('');
+  const hasIntroducedRef = React.useRef<boolean>(false);
+  const roundTimerRef = React.useRef<any>(null);
 
   const resetPuddles = () => {
+    if (roundTimerRef.current) clearTimeout(roundTimerRef.current);
     const shuffled = [...ALPHABET_DATA].sort(() => 0.5 - Math.random());
     const selected = shuffled.slice(0, 4);
     setPuddleLetters(selected);
@@ -39,25 +43,35 @@ export default function PuddleSplashGame({
     setActivePuddleIdx(null);
     setFeedback('');
 
-    setTimeout(() => {
+    const wordName = language === 'nl' ? randomTarget.wordNl || randomTarget.word : randomTarget.word;
+
+    roundTimerRef.current = setTimeout(() => {
       if (mode === 'target') {
-        if (language === 'nl') {
-          sounds.speak(`Spring in de plas van letter ${randomTarget.letter}! Plons!`, 'nl');
+        if (!hasIntroducedRef.current) {
+          hasIntroducedRef.current = true;
+          if (language === 'nl') {
+            sounds.speak(`Spring in de plas van ${randomTarget.letter}!`, 'nl');
+          } else {
+            sounds.speak(`Hop into letter ${randomTarget.letter}!`, 'en');
+          }
         } else {
-          sounds.speak(`Hop into the puddle of letter ${randomTarget.letter}! Splash!`, 'en');
+          // Direct, non-repeating target cue
+          sounds.speak(`${randomTarget.letter}! ${wordName}!`, language);
         }
       } else {
-        if (language === 'nl') {
-          sounds.speak('Tik op de plassen om lekker te spetteren en springen!', 'nl');
-        } else {
-          sounds.speak('Tap any rain puddle to splash and hop!', 'en');
+        if (!hasIntroducedRef.current) {
+          hasIntroducedRef.current = true;
+          sounds.speak(language === 'nl' ? 'Lekker spetteren en springen!' : 'Splash and hop!', language);
         }
       }
-    }, 400);
+    }, 350);
   };
 
   useEffect(() => {
     resetPuddles();
+    return () => {
+      if (roundTimerRef.current) clearTimeout(roundTimerRef.current);
+    };
   }, [mode, language]);
 
   const handlePuddleTap = (
@@ -82,8 +96,14 @@ export default function PuddleSplashGame({
 
     if (mode === 'target') {
       if (letter.letter === targetLetter.letter) {
-        sounds.playChime();
+        sounds.playTada();
         fireConfettiBurst(splashX, splashY, 'autumn');
+        triggerKidCheer({
+          message: language === 'nl' ? 'PLONS! SUPER!' : 'SPLASH! YAY!',
+          emoji: '💦',
+          x: splashX,
+          y: splashY,
+        });
         onEarnStar();
         if (onUnlockSticker) onUnlockSticker(letter.letter);
 
@@ -93,55 +113,33 @@ export default function PuddleSplashGame({
             : `SPLASH! Great job! Letter ${letter.letter}!`
         );
 
-        if (language === 'nl') {
-          sounds.speak(
-            `Plons! Goed gesprongen in letter ${letter.letter}! ${letter.letter} is voor ${wordName}!`,
-            'nl'
-          );
-        } else {
-          sounds.speak(
-            `Splash! Great hop into letter ${letter.letter}! ${letter.letter} is for ${wordName}!`,
-            'en'
-          );
-        }
+        // Punchy varied celebration without repeating formulaic sentences
+        sounds.speak(
+          language === 'nl' ? `Super! ${wordName}!` : `Great! ${wordName}!`,
+          language
+        );
 
-        setTimeout(() => {
+        if (roundTimerRef.current) clearTimeout(roundTimerRef.current);
+        roundTimerRef.current = setTimeout(() => {
           resetPuddles();
-        }, 2200);
+        }, 1800);
       } else {
         sounds.playBoing();
         setFeedback(
           language === 'nl'
-            ? `Dat is plas ${letter.letter}. Zoek letter ${targetLetter.letter}!`
-            : `That's puddle ${letter.letter}. Find letter ${targetLetter.letter}!`
+            ? `Letter ${letter.letter}`
+            : `Letter ${letter.letter}`
         );
-        if (language === 'nl') {
-          sounds.speak(
-            `Plons! Dat is plas ${letter.letter}. Spring nu in plas ${targetLetter.letter}!`,
-            'nl'
-          );
-        } else {
-          sounds.speak(
-            `Splash! That's puddle ${letter.letter}. Hop into puddle ${targetLetter.letter}!`,
-            'en'
-          );
-        }
+        // Just say the tapped letter without repeating lecture
+        sounds.speak(letter.letter, language);
       }
     } else {
       // Free play
-      setFeedback(
-        language === 'nl'
-          ? `PLONS! Letter ${letter.letter} voor ${wordName}!`
-          : `SPLASH! Letter ${letter.letter} for ${wordName}!`
-      );
-      sounds.speak(
-        language === 'nl'
-          ? `Plons! Letter ${letter.letter}! ${wordName}!`
-          : `Splash! Letter ${letter.letter}! ${wordName}!`,
-        language
-      );
+      setFeedback(`Letter ${letter.letter} (${wordName})`);
+      sounds.speak(`${letter.letter}! ${wordName}!`, language);
       if (Math.random() < 0.3) {
         onEarnStar();
+        triggerKidCheer({ emoji: '💦', x: splashX, y: splashY });
       }
     }
   };

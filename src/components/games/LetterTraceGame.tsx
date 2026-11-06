@@ -3,6 +3,7 @@ import { ALPHABET_DATA } from '../../data/alphabetData';
 import { LetterInfo, Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Sparkles, ArrowRight, ArrowLeft, RotateCcw } from 'lucide-react';
 
 interface LetterTraceGameProps {
@@ -42,11 +43,7 @@ export default function LetterTraceGame({
     setTracedPoints([]);
     setIsComplete(false);
     clearCanvas();
-    if (language === 'nl') {
-      sounds.speak(`Laten we de letter ${letterInfo.letter} tekenen!`, 'nl');
-    } else {
-      sounds.speak(`Let's trace the letter ${letterInfo.letter}!`, 'en');
-    }
+    sounds.speak(`Letter ${letterInfo.letter}!`, language);
   }, [currentIdx, isCaseUpper, language]);
 
   const clearCanvas = () => {
@@ -59,22 +56,22 @@ export default function LetterTraceGame({
 
   const handleComplete = () => {
     setIsComplete(true);
-    sounds.playCheer();
+    sounds.playTada();
+    sounds.playSparkle();
     fireConfettiBurst();
+    triggerKidCheer({
+      message: language === 'nl' ? 'MOOI GETEKEND!' : 'GREAT TRACING!',
+      emoji: letterInfo.emoji,
+    });
     onEarnStar();
     if (onUnlockSticker) onUnlockSticker(letterInfo.letter);
 
-    if (language === 'nl') {
-      sounds.speak(
-        `Hoera! Je hebt de letter ${letterInfo.letter} getekend! ${letterInfo.letter} is voor ${letterWord}!`,
-        'nl'
-      );
-    } else {
-      sounds.speak(
-        `Hooray! You traced the letter ${letterInfo.letter}! ${letterInfo.letter} is for ${letterWord}!`,
-        'en'
-      );
-    }
+    sounds.speak(
+      language === 'nl'
+        ? `Super! ${letterWord}!`
+        : `Awesome! ${letterWord}!`,
+      language
+    );
   };
 
   const checkWaypointHit = (canvasX: number, canvasY: number, width: number, height: number) => {

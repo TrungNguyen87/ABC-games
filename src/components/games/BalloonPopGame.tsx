@@ -3,6 +3,7 @@ import { ALPHABET_DATA } from '../../data/alphabetData';
 import { LetterInfo, Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Sparkles, Trophy } from 'lucide-react';
 
 interface BalloonItem {
@@ -154,13 +155,19 @@ export default function BalloonPopGame({
     setBalloons((prev) => prev.filter((b) => b.id !== balloon.id));
 
     if (balloon.isRainbow) {
-      sounds.playCheer();
+      sounds.playKidsCheer();
       fireConfettiBurst(clientX, clientY);
+      triggerKidCheer({
+        message: language === 'nl' ? 'REGENBOOG MAGIE!' : 'RAINBOW MAGIC!',
+        emoji: '🌈',
+        x: clientX,
+        y: clientY,
+      });
       onEarnStar();
       if (language === 'nl') {
-        sounds.speak('Regenboog magie! Super plop!', 'nl');
+        sounds.speak('Regenboog magie!', 'nl');
       } else {
-        sounds.speak('Rainbow magic! Super pop!', 'en');
+        sounds.speak('Rainbow magic!', 'en');
       }
       setBalloons((prev) => prev.slice(0, 1));
       return;
@@ -168,15 +175,21 @@ export default function BalloonPopGame({
 
     if (mode === 'target') {
       if (balloon.letter.letter === targetLetter.letter) {
-        sounds.playChime();
+        sounds.playTada();
         fireConfettiBurst(clientX, clientY);
+        triggerKidCheer({
+          message: language === 'nl' ? 'SUPER GEPLOPT!' : 'GREAT POP!',
+          emoji: '🎈',
+          x: clientX,
+          y: clientY,
+        });
         onEarnStar();
         if (onUnlockSticker) onUnlockSticker(balloon.letter.letter);
 
         if (language === 'nl') {
-          sounds.speak(`Goed zo! Je hebt ${balloon.letter.letter} geplopt!`, 'nl');
+          sounds.speak(`Super! ${balloon.letter.letter}!`, 'nl');
         } else {
-          sounds.speak(`Great job! You popped ${balloon.letter.letter}!`, 'en');
+          sounds.speak(`Great! ${balloon.letter.letter}!`, 'en');
         }
 
         const newTarget = ALPHABET_DATA[Math.floor(Math.random() * ALPHABET_DATA.length)];
@@ -185,7 +198,7 @@ export default function BalloonPopGame({
         setTimeout(() => {
           // Just say the new word, don't repeat questions
           sounds.speak(newWord, language);
-        }, 1200);
+        }, 1100);
       } else {
         sounds.playBoing();
         // Just say the popped word, no repeating lecture
@@ -195,6 +208,7 @@ export default function BalloonPopGame({
       sounds.speak(`${balloon.letter.letter}! ${wordName}!`, language);
       if (Math.random() < 0.25) {
         onEarnStar();
+        triggerKidCheer({ emoji: '🎈', x: clientX, y: clientY });
       }
     }
   };
@@ -287,7 +301,6 @@ export default function BalloonPopGame({
             <div
               key={b.id}
               onClick={(e) => handlePop(b, e)}
-              onTouchStart={(e) => handlePop(b, e)}
               style={{
                 left: `${b.x}%`,
                 top: `${b.y}px`,

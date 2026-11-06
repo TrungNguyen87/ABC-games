@@ -3,6 +3,7 @@ import { ALPHABET_DATA } from '../../data/alphabetData';
 import { Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Sparkles, Trash2, CheckCircle2 } from 'lucide-react';
 
 interface PlacedSticker {
@@ -134,7 +135,14 @@ export default function StickerBookGame({ unlockedLetters, language }: StickerBo
     if (!letterItem) return;
 
     sounds.playPop();
+    sounds.playSparkle();
     fireConfettiBurst(e.clientX, e.clientY);
+    triggerKidCheer({
+      message: language === 'nl' ? 'MOOI GEPLAKT!' : 'GREAT STICKER!',
+      emoji: letterItem.emoji,
+      x: e.clientX,
+      y: e.clientY,
+    });
 
     const wordName = language === 'nl' ? letterItem.wordNl || letterItem.word : letterItem.word;
     sounds.speak(`${wordName}!`, language);

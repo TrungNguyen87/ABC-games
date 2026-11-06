@@ -4,6 +4,7 @@ import { SPELLING_WORDS, SpellingWord } from '../../data/spellingWords';
 import AlphabetLoreAvatar from '../AlphabetLoreAvatar';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Volume2, Sparkles, RefreshCw, Lightbulb, ChevronRight, Wand2, Moon, Sun } from 'lucide-react';
 
 interface LoreSpellerGameProps {
@@ -95,19 +96,11 @@ export default function LoreSpellerGame({
 
     setLetterPool(shuffled);
 
-    // Speak introductory cue with soft young lady voice
+    // Speak word cue concisely without repeating long question
     const hint = language === 'nl' ? currentWord.hintNl : currentWord.hintEn;
     const wordSpoken = language === 'nl' ? currentWord.wordNl : currentWord.wordEn;
-    if (isSpookyHalloween) {
-      sounds.playGhost();
-    }
-    sounds.speak(
-      language === 'nl'
-        ? `Kun jij ${wordSpoken} spellen? ${hint}`
-        : `Can you spell ${wordSpoken}? ${hint}`,
-      language
-    );
-  }, [currentWord, targetWord, language, isSpookyHalloween]);
+    sounds.speak(`${wordSpoken}! ${hint}`, language);
+  }, [currentWord, targetWord, language]);
 
   const handleSpeakWord = () => {
     const wordSpoken = language === 'nl' ? currentWord.wordNl : currentWord.wordEn;
@@ -157,9 +150,7 @@ export default function LoreSpellerGame({
         // ⚠️ Mismatch
         sounds.playBoing();
         sounds.speak(
-          language === 'nl'
-            ? 'Bijna goed! Tik op een letter om hem te wisselen.'
-            : 'Almost there! Tap a letter to swap it.',
+          language === 'nl' ? 'Bijna!' : 'Almost!',
           language
         );
       }
@@ -196,23 +187,23 @@ export default function LoreSpellerGame({
     setIsWordComplete(true);
     fireConfettiBurst(isSpookyHalloween ? 'halloween' : category === 'autumn' ? 'autumn' : 'rainbow');
 
-    if (isSpookyHalloween) {
-      sounds.playSpookyBoo();
-    } else {
-      sounds.playCheer();
-    }
+    sounds.playTada();
     sounds.playSparkle();
+
+    triggerKidCheer({
+      message: language === 'nl' ? 'HOERA GESPELD!' : 'YOU SPELLED IT!',
+      emoji: currentWord.emoji,
+    });
 
     onEarnStar();
     // Unlock the first letter sticker
     onUnlockSticker(spelled.charAt(0));
 
     const wordSpoken = language === 'nl' ? currentWord.wordNl : currentWord.wordEn;
-    const funSound = language === 'nl' ? currentWord.funSoundNl : currentWord.funSoundEn;
     const msg =
       language === 'nl'
-        ? `Hoera! Je hebt ${wordSpoken} gespeld! ${funSound || 'Geweldig!'}`
-        : `Hooray! You spelled ${wordSpoken}! ${funSound || 'Awesome!'}`;
+        ? `Super! ${wordSpoken}!`
+        : `Awesome! ${wordSpoken}!`;
 
     setCelebrationMessage(msg);
     sounds.speak(msg, language);
@@ -255,23 +246,12 @@ export default function LoreSpellerGame({
         {/* Halloween Mode Switch */}
         <button
           onClick={() => {
-            sounds.playPop();
             const next = !isSpookyHalloween;
             setIsSpookyHalloween(next);
             if (next) {
               sounds.playSpookyBoo();
-              sounds.speak(
-                language === 'nl'
-                  ? 'Boe! Welkom in Spooky Halloween stijl!'
-                  : 'Boo! Welcome to Spooky Halloween style!',
-                language
-              );
             } else {
               sounds.playSparkle();
-              sounds.speak(
-                language === 'nl' ? 'Zonnige vrolijke wereld!' : 'Sunny playful world!',
-                language
-              );
             }
           }}
           className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full font-black text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-md cursor-pointer ${

@@ -3,6 +3,7 @@ import { Language } from '../../types/game';
 import AlphabetLoreAvatar, { LORE_CHARACTERS, LoreCharacterDef } from '../AlphabetLoreAvatar';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Volume2, Sparkles, HelpCircle, Moon, Sun, Award, RefreshCw } from 'lucide-react';
 
 interface LoreCharactersGameProps {
@@ -26,25 +27,25 @@ export default function LoreCharactersGame({ onEarnStar, language }: LoreCharact
     // If challenge mode is active
     if (challengeTarget) {
       if (letter === challengeTarget) {
-        sounds.playCheer();
+        sounds.playTada();
         sounds.playSparkle();
         fireConfettiBurst(isSpookyHalloween ? 'halloween' : 'stars');
+        triggerKidCheer({
+          message: language === 'nl' ? 'LETTER GEVONDEN!' : 'FOUND IT!',
+          emoji: '👑',
+        });
         onEarnStar();
         const successMsg =
           language === 'nl'
-            ? `Super! Je hebt ${letter} gevonden! ⭐`
-            : `Awesome! You found ${letter}! ⭐`;
+            ? `Super! Letter ${letter}!`
+            : `Awesome! Letter ${letter}!`;
         setChallengeFeedback(successMsg);
         sounds.speak(successMsg, language);
         setChallengeTarget(null);
       } else {
         sounds.playBoing();
-        sounds.speak(
-          language === 'nl'
-            ? `Dat is ${letter}! Blijf zoeken naar ${challengeTarget}!`
-            : `That is ${letter}! Keep looking for ${challengeTarget}!`,
-          language
-        );
+        // Just say clicked letter, no repeating lecture
+        sounds.speak(letter, language);
       }
       return;
     }

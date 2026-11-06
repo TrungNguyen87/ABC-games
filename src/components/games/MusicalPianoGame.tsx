@@ -3,6 +3,7 @@ import { PIANO_KEYS, ABC_SONG_LYRICS_EN, ABC_SONG_LYRICS_NL } from '../../data/a
 import { Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Music, Play, Square, Sparkles, Volume2 } from 'lucide-react';
 
 interface MusicalPianoGameProps {
@@ -63,8 +64,12 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
         if (step >= lyrics.length) {
           clearInterval(songTimerRef.current);
           setIsPlayingSong(false);
-          sounds.playCheer();
+          sounds.playKidsCheer();
           fireConfettiBurst();
+          triggerKidCheer({
+            message: language === 'nl' ? 'MOOI GEZONGEN!' : 'SUPER SINGER!',
+            emoji: '🎶',
+          });
           onEarnStar();
           if (language === 'nl') {
             sounds.speak('Hoera! Wat mooi gezongen!', 'nl');

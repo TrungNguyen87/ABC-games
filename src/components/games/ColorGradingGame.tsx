@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import AlphabetLoreAvatar from '../AlphabetLoreAvatar';
 import {
   Sparkles,
@@ -198,6 +199,7 @@ export default function ColorGradingGame({
   const [selectedGradient, setSelectedGradient] = useState<string>(STUDIO_GRADIENTS[0].id);
   const [gradientAngle, setGradientAngle] = useState<number>(135);
   const [sparkleActive, setSparkleActive] = useState<boolean>(true);
+  const hasIntroducedShadeRef = React.useRef<boolean>(false);
 
   // --- INITIALIZE TYPE 1 ---
   const setupShadeRound = (familyIdx: number, letterChar?: string) => {
@@ -216,13 +218,19 @@ export default function ColorGradingGame({
 
     const fam = SHADE_FAMILIES[familyIdx % SHADE_FAMILIES.length];
     const famName = language === 'nl' ? fam.nameNl : fam.nameEn;
-    const prompt =
-      language === 'nl'
-        ? `Sorteer letter ${chosenLetter} van licht naar donker in ${famName}!`
-        : `Sort letter ${chosenLetter} from light to dark in ${famName}!`;
-
+    
     sounds.playColorChime(0.5);
-    sounds.speak(prompt, language);
+
+    if (!hasIntroducedShadeRef.current) {
+      hasIntroducedShadeRef.current = true;
+      const prompt =
+        language === 'nl'
+          ? `Sorteer van licht naar donker in ${famName}!`
+          : `Sort from light to dark in ${famName}!`;
+      sounds.speak(prompt, language);
+    } else {
+      sounds.speak(`${famName}!`, language);
+    }
   };
 
   useEffect(() => {
@@ -234,15 +242,15 @@ export default function ColorGradingGame({
       setRainbowTargetIndex(0);
       sounds.speak(
         language === 'nl'
-          ? 'Leg de letters op de regenboog! Van rood naar paars!'
-          : 'Place the letters on the rainbow! From red to purple!',
+          ? 'Regenboog letters!'
+          : 'Rainbow letters!',
         language
       );
     } else if (gameType === 'gradient-studio') {
       sounds.speak(
         language === 'nl'
-          ? 'Welkom in de Kleur & Gradiënt Studio! Kies een mooie gradiënt!'
-          : 'Welcome to Color & Gradient Studio! Pick a magical gradient!',
+          ? 'Kleur & Gradiënt Studio!'
+          : 'Color & Gradient Studio!',
         language
       );
     }
@@ -267,34 +275,40 @@ export default function ColorGradingGame({
     // Sound chime based on shade intensity
     sounds.playColorChime((item.stepIndex + 1) / 4);
 
-    const stepInfo = currentShadeFamily.steps[item.stepIndex];
-    const stepLabel = language === 'nl' ? stepInfo.labelNl : stepInfo.labelEn;
-    sounds.speak(stepLabel, language);
+    const isAllPlaced = nextPlaced.every((s) => s !== null);
 
-    // Check if all 4 are placed
-    if (nextPlaced.every((s) => s !== null)) {
+    // Only speak the intermediate step label if not yet finishing the puzzle
+    if (!isAllPlaced) {
+      const stepInfo = currentShadeFamily.steps[item.stepIndex];
+      const stepLabel = language === 'nl' ? stepInfo.labelNl : stepInfo.labelEn;
+      sounds.speak(stepLabel, language);
+    } else {
       // Check if sorted in order: 0, 1, 2, 3
       const isCorrectOrder = nextPlaced.every((val, idx) => val === idx);
       if (isCorrectOrder) {
         setIsShadeComplete(true);
-        sounds.playCheer();
+        sounds.playTada();
         sounds.playSparkle();
         fireConfettiBurst('rainbow');
+        triggerKidCheer({
+          message: language === 'nl' ? 'MOOIE TINTEN!' : 'BEAUTIFUL SHADES!',
+          emoji: '🎨',
+        });
         onEarnStar();
         if (onUnlockSticker) onUnlockSticker(currentLetter);
 
         const famName = language === 'nl' ? currentShadeFamily.nameNl : currentShadeFamily.nameEn;
         const msg =
           language === 'nl'
-            ? `Geweldig gesorteerd! Van licht naar donker in ${famName}!`
-            : `Awesome job! Beautiful light-to-dark gradient in ${famName}!`;
+            ? `Super! ${famName} gesorteerd!`
+            : `Awesome! ${famName} sorted!`;
         sounds.speak(msg, language);
       } else {
         sounds.playBoing();
         sounds.speak(
           language === 'nl'
-            ? 'Bijna goed! Tik op een letter om hem te wisselen.'
-            : 'Almost there! Tap a letter to swap it.',
+            ? 'Bijna!'
+            : 'Almost!',
           language
         );
       }
@@ -328,14 +342,18 @@ export default function ColorGradingGame({
 
     if (nextPlaced.every(Boolean)) {
       setIsRainbowComplete(true);
-      sounds.playCheer();
+      sounds.playTada();
       sounds.playSparkle();
       fireConfettiBurst('rainbow');
+      triggerKidCheer({
+        message: language === 'nl' ? 'REGENBOOG KLAAR!' : 'RAINBOW COMPLETE!',
+        emoji: '🌈',
+      });
       onEarnStar();
       sounds.speak(
         language === 'nl'
-          ? 'Hoera! Je hebt een magische regenboog gemaakt!'
-          : 'Hooray! You built a magical rainbow spectrum!',
+          ? 'Magische regenboog!'
+          : 'Magical rainbow!',
         language
       );
     }

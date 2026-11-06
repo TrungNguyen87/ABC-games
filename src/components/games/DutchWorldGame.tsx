@@ -3,6 +3,7 @@ import { DUTCH_WORLD_WORDS } from '../../data/alphabetData';
 import { WordItem, Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Sparkles, RefreshCw, Volume2, Search, Compass } from 'lucide-react';
 
 interface DutchWorldGameProps {
@@ -20,48 +21,48 @@ export default function DutchWorldGame({ onEarnStar, language }: DutchWorldGameP
   );
   const [activeWordId, setActiveWordId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string>('');
+  const hasIntroducedQuizRef = React.useRef<boolean>(false);
+  const quizTimerRef = React.useRef<any>(null);
 
   const currentCategoryWords = DUTCH_WORLD_WORDS.filter(
     (w) => w.category === selectedCategory
   );
 
   const startQuizRound = useCallback(() => {
+    if (quizTimerRef.current) clearTimeout(quizTimerRef.current);
     const words = DUTCH_WORLD_WORDS.filter((w) => w.category === selectedCategory);
     const random = words[Math.floor(Math.random() * words.length)] || DUTCH_WORLD_WORDS[0];
     setTargetWord(random);
     setActiveWordId(null);
     setFeedback('');
 
-    setTimeout(() => {
-      if (language === 'nl') {
-        sounds.speak(`Waar is ${random.articleNl} ${random.nl}?`, 'nl');
-      } else {
+    quizTimerRef.current = setTimeout(() => {
+      if (!hasIntroducedQuizRef.current) {
+        hasIntroducedQuizRef.current = true;
         sounds.speak(
-          `Can you find the Dutch word for ${random.en}? Find ${random.articleNl} ${random.nl}!`,
+          language === 'nl'
+            ? `Zoek ${random.articleNl} ${random.nl}!`
+            : `Find ${random.articleNl} ${random.nl}!`,
           'nl'
         );
+      } else {
+        // Subsequent rounds: direct target word without repeating question
+        sounds.speak(`${random.articleNl} ${random.nl}!`, 'nl');
       }
-    }, 400);
+    }, 350);
   }, [selectedCategory, language]);
 
   useEffect(() => {
+    if (quizTimerRef.current) clearTimeout(quizTimerRef.current);
     if (mode === 'quiz') {
       startQuizRound();
     } else {
       setActiveWordId(null);
       setFeedback('');
-      const catName =
-        selectedCategory === 'autumn'
-          ? 'de herfst en het bos'
-          : selectedCategory === 'animals'
-          ? 'de dieren'
-          : selectedCategory === 'vehicles'
-          ? 'het vervoer en Holland'
-          : selectedCategory === 'food'
-          ? 'het eten en fruit'
-          : 'de natuur';
-      sounds.speak(`Tik op de plaatjes om ${catName} te leren!`, 'nl');
     }
+    return () => {
+      if (quizTimerRef.current) clearTimeout(quizTimerRef.current);
+    };
   }, [selectedCategory, mode, startQuizRound]);
 
   const handleWordClick = (word: WordItem) => {
@@ -69,37 +70,38 @@ export default function DutchWorldGame({ onEarnStar, language }: DutchWorldGameP
 
     if (mode === 'quiz') {
       if (word.id === targetWord.id) {
-        sounds.playChime();
+        sounds.playTada();
         fireConfettiBurst(selectedCategory === 'autumn' ? 'autumn' : 'rainbow');
+        triggerKidCheer({
+          message: language === 'nl' ? 'GOED ZO!' : 'SUPER!',
+          emoji: word.emoji,
+        });
         onEarnStar();
         setFeedback(`Goed zo! ${word.articleNl} ${word.nl}! 🎉`);
 
-        sounds.speak(`Goed zo! Dat is ${word.articleNl} ${word.nl}! ${word.soundCue || ''}`, 'nl');
+        sounds.speak(`Super! ${word.nl}!`, 'nl');
 
-        setTimeout(() => {
+        if (quizTimerRef.current) clearTimeout(quizTimerRef.current);
+        quizTimerRef.current = setTimeout(() => {
           startQuizRound();
-        }, 2200);
+        }, 1600);
       } else {
         sounds.playBoing();
-        setFeedback(
-          `Dat is ${word.articleNl} ${word.nl}. Zoek ${targetWord.articleNl} ${targetWord.nl}!`
-        );
-        sounds.speak(
-          `Dat is ${word.articleNl} ${word.nl}. Waar is ${targetWord.articleNl} ${targetWord.nl}?`,
-          'nl'
-        );
+        setFeedback(`${word.articleNl} ${word.nl}`);
+        // Just say clicked word, no repeating questions or lectures
+        sounds.speak(word.nl, 'nl');
         setTimeout(() => {
           setActiveWordId(null);
-        }, 800);
+        }, 700);
       }
     } else {
       sounds.playPop();
       setFeedback(`${word.articleNl} ${word.nl} (${word.en})`);
-      sounds.speak(`${word.articleNl} ${word.nl}! ${word.soundCue || ''}`, 'nl');
+      sounds.speak(`${word.articleNl} ${word.nl}!`, 'nl');
 
       setTimeout(() => {
         setActiveWordId(null);
-      }, 1200);
+      }, 1000);
     }
   };
 

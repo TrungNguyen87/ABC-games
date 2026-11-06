@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
+import { triggerKidCheer } from '../CheerCelebration';
 import { Sparkles, RefreshCw, Volume2, ChevronRight, CheckCircle2 } from 'lucide-react';
 
 interface ToddlerCountingGameProps {
@@ -112,12 +113,12 @@ export default function ToddlerCountingGame({
 
     setTargetCount(nextCount);
 
-    // Introductory spoken prompt
+    // Spoken prompt: clean and non-repeating
     const itemName = language === 'nl' ? pickedItem.nameNl : pickedItem.nameEn;
     const prompt =
       language === 'nl'
-        ? `Hoeveel ${itemName} zie je? Tel ze maar!`
-        : `How many ${itemName} do you see? Let's count them!`;
+        ? `${itemName} tellen!`
+        : `Count the ${itemName}!`;
 
     if (selectedTheme === 'halloween') {
       sounds.playGhost();
@@ -138,8 +139,8 @@ export default function ToddlerCountingGame({
     const itemName = language === 'nl' ? itemDef.nameNl : itemDef.nameEn;
     const prompt =
       language === 'nl'
-        ? `Hoeveel ${itemName} tel jij? Tik op de spulletjes!`
-        : `How many ${itemName} do you count? Tap on them!`;
+        ? `Hoeveel ${itemName} tel jij?`
+        : `How many ${itemName} do you count?`;
     sounds.speak(prompt, language);
   };
 
@@ -155,28 +156,34 @@ export default function ToddlerCountingGame({
       // Play joyful pop & sound
       sounds.playPop();
 
-      // Number for this item
+      // Number for this item - speak cleanly without saying digit and word twice
       const currentTapNumber = nextCounted.length;
       const numWord =
         language === 'nl'
           ? DUTCH_NUMBER_WORDS[currentTapNumber] || `${currentTapNumber}`
           : ENGLISH_NUMBER_WORDS[currentTapNumber] || `${currentTapNumber}`;
 
-      sounds.speak(`${currentTapNumber}! ${numWord}!`, language);
-
-      // If user tapped all items, trigger celebratory feedback!
+      // If user tapped all items, trigger celebratory feedback cleanly after number
       if (nextCounted.length === targetCount) {
-        handleCorrect(targetCount);
+        sounds.speak(`${numWord}!`, language, () => {
+          handleCorrect(targetCount);
+        });
+        // Fallback in case onEnd doesn't fire
+        setTimeout(() => {
+          if (!isSuccess) handleCorrect(targetCount);
+        }, 800);
+      } else {
+        sounds.speak(numWord, language);
       }
     } else {
-      // Re-speak that specific number
+      // Re-speak that specific number cleanly
       const pos = nextCounted.indexOf(index) + 1;
       sounds.playRustle();
       const numWord =
         language === 'nl'
           ? DUTCH_NUMBER_WORDS[pos] || `${pos}`
           : ENGLISH_NUMBER_WORDS[pos] || `${pos}`;
-      sounds.speak(`${pos}! ${numWord}`, language);
+      sounds.speak(numWord, language);
     }
   };
 
@@ -188,15 +195,13 @@ export default function ToddlerCountingGame({
       handleCorrect(num);
     } else {
       sounds.playBoing();
-      const tip =
-        language === 'nl'
-          ? `Nog een keertje proberen! Laten we ze samen tellen.`
-          : `Try again! Let's count them together.`;
+      const tip = language === 'nl' ? 'Bijna!' : 'Almost!';
       sounds.speak(tip, language);
     }
   };
 
   const handleCorrect = (num: number) => {
+    if (isSuccess) return;
     setIsSuccess(true);
     // All items counted
     setCountedIndices(Array.from({ length: targetCount }, (_, i) => i));
@@ -205,12 +210,12 @@ export default function ToddlerCountingGame({
       theme === 'halloween' ? 'halloween' : theme === 'autumn' ? 'autumn' : 'rainbow'
     );
 
-    if (theme === 'halloween') {
-      sounds.playSpookyBoo();
-    } else {
-      sounds.playCheer();
-    }
+    sounds.playTada();
     sounds.playSparkle();
+    triggerKidCheer({
+      message: language === 'nl' ? 'SUPER GETELD!' : 'GREAT COUNTING!',
+      emoji: itemDef.emoji,
+    });
     onEarnStar();
 
     const numWord =
@@ -221,8 +226,8 @@ export default function ToddlerCountingGame({
 
     const message =
       language === 'nl'
-        ? `Geweldig! Dat zijn ${num} (${numWord}) ${itemName}! 🎉`
-        : `Great job! That is ${num} (${numWord}) ${itemName}! 🎉`;
+        ? `Super! ${numWord} ${itemName}! 🎉`
+        : `Awesome! ${numWord} ${itemName}! 🎉`;
 
     setCelebrationMsg(message);
     sounds.speak(message, language);
