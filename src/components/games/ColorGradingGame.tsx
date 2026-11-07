@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Language } from '../../types/game';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Language, LetterStyleOption } from '../../types/game';
+import { ALPHABET_DATA } from '../../data/alphabetData';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
 import { triggerKidCheer } from '../CheerCelebration';
 import AlphabetLoreAvatar from '../AlphabetLoreAvatar';
+import LetterAvatar from '../LetterAvatar';
 import {
   Sparkles,
   RefreshCw,
@@ -12,9 +14,10 @@ import {
   Palette,
   CheckCircle2,
   Wand2,
-  Sliders,
-  Sun,
-  Moon,
+  Paintbrush,
+  Eraser,
+  Trash2,
+  Shuffle,
 } from 'lucide-react';
 
 interface ColorGradingGameProps {
@@ -23,9 +26,75 @@ interface ColorGradingGameProps {
   language: Language;
 }
 
-type GradingGameType = 'shade-sort' | 'rainbow-spectrum' | 'gradient-studio';
+type GradingGameType = 'paint-studio' | 'shade-sort' | 'rainbow-spectrum';
 
-// Shade family definitions for Type 1: Shade Gradient Sort
+// Toddler brush tools
+type PaintTool = 'rainbow-roller' | 'brush' | 'bucket' | 'stamp' | 'eraser';
+
+// Stamps
+const STAMPS = ['⭐', '💖', '🎃', '🍁', '🌸', '🌈', '👻', '✨'];
+
+// Vivid toddler color palette
+const PAINT_COLORS = [
+  { nameNl: 'Robijn Rood', nameEn: 'Ruby Red', hex: '#ef4444', border: '#b91c1c' },
+  { nameNl: 'Zonnig Oranje', nameEn: 'Sunny Orange', hex: '#f97316', border: '#c2410c' },
+  { nameNl: 'Goudgeel', nameEn: 'Golden Yellow', hex: '#facc15', border: '#ca8a04' },
+  { nameNl: 'Fris Groen', nameEn: 'Fresh Green', hex: '#22c55e', border: '#15803d' },
+  { nameNl: 'Hemelsblauw', nameEn: 'Sky Blue', hex: '#38bdf8', border: '#0284c7' },
+  { nameNl: 'Koningsblauw', nameEn: 'Royal Blue', hex: '#3b82f6', border: '#1d4ed8' },
+  { nameNl: 'Magisch Paars', nameEn: 'Magic Purple', hex: '#a855f7', border: '#7e22ce' },
+  { nameNl: 'Suikerspin Roze', nameEn: 'Cotton Pink', hex: '#f472b6', border: '#db2777' },
+  { nameNl: 'Sneeuwwit', nameEn: 'Pure White', hex: '#ffffff', border: '#94a3b8' },
+  { nameNl: 'Donkerblauw', nameEn: 'Midnight Blue', hex: '#1e1b4b', border: '#0f172a' },
+];
+
+// Gradient presets for bucket fill or background
+const GRADIENT_PRESETS = [
+  {
+    id: 'sunset',
+    nameNl: '🌅 Zonsondergang',
+    nameEn: '🌅 Sunset Glow',
+    css: 'linear-gradient(135deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%)',
+    stops: ['#f59e0b', '#ec4899', '#8b5cf6'],
+  },
+  {
+    id: 'rainbow',
+    nameNl: '🌈 Regenboog',
+    nameEn: '🌈 Rainbow',
+    css: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #a855f7 100%)',
+    stops: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'],
+  },
+  {
+    id: 'ocean',
+    nameNl: '🌊 Tropische Zee',
+    nameEn: '🌊 Ocean Aurora',
+    css: 'linear-gradient(135deg, #2dd4bf 0%, #06b6d4 40%, #3b82f6 75%, #1e1b4b 100%)',
+    stops: ['#2dd4bf', '#06b6d4', '#3b82f6', '#1e1b4b'],
+  },
+  {
+    id: 'autumn',
+    nameNl: '🍂 Herfstbladeren',
+    nameEn: '🍂 Autumn Woods',
+    css: 'linear-gradient(135deg, #fde047 0%, #f97316 45%, #b91c1c 80%, #78350f 100%)',
+    stops: ['#fde047', '#f97316', '#b91c1c', '#78350f'],
+  },
+  {
+    id: 'halloween',
+    nameNl: '🎃 Spooky Neon',
+    nameEn: '🎃 Spooky Neon',
+    css: 'linear-gradient(135deg, #a855f7 0%, #3b82f6 40%, #10b981 80%, #f97316 100%)',
+    stops: ['#a855f7', '#3b82f6', '#10b981', '#f97316'],
+  },
+  {
+    id: 'candy',
+    nameNl: '🍭 Snoepjes',
+    nameEn: '🍭 Candy Sparkle',
+    css: 'linear-gradient(135deg, #f472b6 0%, #c084fc 50%, #67e8f9 100%)',
+    stops: ['#f472b6', '#c084fc', '#67e8f9'],
+  },
+];
+
+// Shade definitions for Mode 2: Shade Sort
 interface ShadeFamily {
   id: string;
   nameNl: string;
@@ -115,7 +184,7 @@ const SHADE_FAMILIES: ShadeFamily[] = [
   },
 ];
 
-// Rainbow spectrum steps for Type 2
+// Rainbow spectrum steps for Mode 3
 const RAINBOW_SPECTRUM = [
   { letter: 'A', nameNl: 'Rood', nameEn: 'Red', bgHex: '#ef4444', borderHex: '#b91c1c', textColor: '#ffffff', soundRatio: 0.1 },
   { letter: 'B', nameNl: 'Oranje', nameEn: 'Orange', bgHex: '#f97316', borderHex: '#c2410c', textColor: '#ffffff', soundRatio: 0.28 },
@@ -125,90 +194,288 @@ const RAINBOW_SPECTRUM = [
   { letter: 'F', nameNl: 'Paars', nameEn: 'Purple', bgHex: '#a855f7', borderHex: '#7e22ce', textColor: '#ffffff', soundRatio: 0.95 },
 ];
 
-// Multi-stop gradient palettes for Type 3: Gradient Studio
-const STUDIO_GRADIENTS = [
-  {
-    id: 'sunset',
-    nameNl: '🌅 Zonsondergang',
-    nameEn: '🌅 Sunset Glow',
-    css: 'linear-gradient(135deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%)',
-    stops: ['#f59e0b', '#ec4899', '#8b5cf6'],
-  },
-  {
-    id: 'halloween',
-    nameNl: '🎃 Spooky Neon',
-    nameEn: '🎃 Spooky Neon',
-    css: 'linear-gradient(135deg, #a855f7 0%, #3b82f6 40%, #10b981 80%, #f97316 100%)',
-    stops: ['#a855f7', '#3b82f6', '#10b981', '#f97316'],
-  },
-  {
-    id: 'autumn',
-    nameNl: '🍂 Herfstbladeren',
-    nameEn: '🍂 Autumn Woods',
-    css: 'linear-gradient(135deg, #fde047 0%, #f97316 45%, #b91c1c 80%, #78350f 100%)',
-    stops: ['#fde047', '#f97316', '#b91c1c', '#78350f'],
-  },
-  {
-    id: 'ocean',
-    nameNl: '🌊 Tropische Zee',
-    nameEn: '🌊 Ocean Aurora',
-    css: 'linear-gradient(135deg, #2dd4bf 0%, #06b6d4 40%, #3b82f6 75%, #1e1b4b 100%)',
-    stops: ['#2dd4bf', '#06b6d4', '#3b82f6', '#1e1b4b'],
-  },
-  {
-    id: 'cotton-candy',
-    nameNl: '🍭 Suikerspin',
-    nameEn: '🍭 Candy Magic',
-    css: 'linear-gradient(135deg, #f472b6 0%, #c084fc 50%, #67e8f9 100%)',
-    stops: ['#f472b6', '#c084fc', '#67e8f9'],
-  },
-  {
-    id: 'rainbow',
-    nameNl: '🌈 Volle Regenboog',
-    nameEn: '🌈 Full Rainbow',
-    css: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #a855f7 100%)',
-    stops: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'],
-  },
-];
-
 export default function ColorGradingGame({
   onEarnStar,
   onUnlockSticker,
   language,
 }: ColorGradingGameProps) {
-  const [gameType, setGameType] = useState<GradingGameType>('shade-sort');
+  // Main Tab: defaults to 'paint-studio' since the user requested "Colour grading mean kids can paint the letter"
+  const [gameType, setGameType] = useState<GradingGameType>('paint-studio');
 
-  // --- STATE FOR TYPE 1: Shade Gradient Sort ---
+  // =========================================================================
+  // STATE FOR MODE 1: Interactive Letter Painting Studio (MULTI-TOUCH)
+  // =========================================================================
+  const [paintLetter, setPaintLetter] = useState<string>('A');
+  const [letterStyle, setLetterStyle] = useState<LetterStyleOption>('normal');
+  const [activeTool, setActiveTool] = useState<PaintTool>('rainbow-roller');
+  const [activeColor, setActiveColor] = useState<string>(PAINT_COLORS[0].hex);
+  const [activeStamp, setActiveStamp] = useState<string>(STAMPS[0]);
+  const [brushSize, setBrushSize] = useState<number>(24);
+  const [letterBgColor, setLetterBgColor] = useState<string>('#ffffff');
+  const [letterBgGradient, setLetterBgGradient] = useState<string | null>(null);
+  const [paintStrokesCount, setPaintStrokesCount] = useState<number>(0);
+  // Starts with non-colour picture letter so kid will colour it!
+  const [isColoringOutlineMode, setIsColoringOutlineMode] = useState<boolean>(true);
+
+  // HTML5 Multi-touch painting canvas
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const touchPointsRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const mouseDrawingRef = useRef<boolean>(false);
+  const rainbowHueRef = useRef<number>(0);
+
+  // =========================================================================
+  // STATE FOR MODE 2: Shade Sort
+  // =========================================================================
   const [shadeFamilyIndex, setShadeFamilyIndex] = useState<number>(0);
   const currentShadeFamily = SHADE_FAMILIES[shadeFamilyIndex % SHADE_FAMILIES.length];
-  const [currentLetter, setCurrentLetter] = useState<string>('A');
-  // Shuffled items for toddler to place into slots
+  const [shadeTargetLetter, setShadeTargetLetter] = useState<string>('A');
   const [availableShades, setAvailableShades] = useState<{ id: string; stepIndex: number }[]>([]);
-  // Placed shade cards in the target gradient rack: index 0 (lightest) to 3 (darkest)
   const [placedShades, setPlacedShades] = useState<(number | null)[]>([null, null, null, null]);
   const [isShadeComplete, setIsShadeComplete] = useState<boolean>(false);
+  const hasIntroducedShadeRef = useRef<boolean>(false);
 
-  // --- STATE FOR TYPE 2: Rainbow Spectrum Run ---
-  const [rainbowTargetIndex, setRainbowTargetIndex] = useState<number>(0);
+  // =========================================================================
+  // STATE FOR MODE 3: Rainbow Spectrum
+  // =========================================================================
   const [rainbowPlaced, setRainbowPlaced] = useState<boolean[]>([false, false, false, false, false, false]);
   const [isRainbowComplete, setIsRainbowComplete] = useState<boolean>(false);
 
-  // --- STATE FOR TYPE 3: Gradient Studio ---
-  const [studioLetter, setStudioLetter] = useState<string>('A');
-  const [studioLoreMode, setStudioLoreMode] = useState<boolean>(false);
-  const [selectedGradient, setSelectedGradient] = useState<string>(STUDIO_GRADIENTS[0].id);
-  const [gradientAngle, setGradientAngle] = useState<number>(135);
-  const [sparkleActive, setSparkleActive] = useState<boolean>(true);
-  const hasIntroducedShadeRef = React.useRef<boolean>(false);
+  // Clear or resize canvas
+  const clearPaintCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setPaintStrokesCount(0);
+  }, []);
 
-  // --- INITIALIZE TYPE 1 ---
+  // Setup / Initialize canvas sizing
+  useEffect(() => {
+    if (gameType === 'paint-studio' && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.scale(dpr, dpr);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+      }
+    }
+  }, [gameType, paintLetter, letterStyle]);
+
+  // Mode announcement
+  useEffect(() => {
+    if (gameType === 'paint-studio') {
+      sounds.speak(
+        language === 'nl'
+          ? `Schilder de letter ${paintLetter}!`
+          : `Paint the letter ${paintLetter}!`,
+        language
+      );
+    } else if (gameType === 'shade-sort') {
+      setupShadeRound(shadeFamilyIndex);
+    } else if (gameType === 'rainbow-spectrum') {
+      setRainbowPlaced([false, false, false, false, false, false]);
+      setIsRainbowComplete(false);
+      sounds.speak(
+        language === 'nl' ? 'Regenboog letters!' : 'Rainbow letters!',
+        language
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameType]);
+
+  // =========================================================================
+  // MULTI-TOUCH PAINTING HANDLERS
+  // Supports multiple fingers at the same time for toddlers on tablets!
+  // =========================================================================
+  const drawPaintSegment = (
+    from: { x: number; y: number },
+    to: { x: number; y: number }
+  ) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.save();
+    if (activeTool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.lineWidth = brushSize * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+    } else if (activeTool === 'rainbow-roller') {
+      // Advance rainbow hue
+      rainbowHueRef.current = (rainbowHueRef.current + 8) % 360;
+      ctx.strokeStyle = `hsl(${rainbowHueRef.current}, 95%, 55%)`;
+      ctx.shadowColor = `hsl(${rainbowHueRef.current}, 95%, 65%)`;
+      ctx.shadowBlur = 10;
+      ctx.lineWidth = brushSize;
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+    } else if (activeTool === 'brush') {
+      ctx.strokeStyle = activeColor;
+      ctx.shadowColor = activeColor;
+      ctx.shadowBlur = 4;
+      ctx.lineWidth = brushSize;
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.stroke();
+    }
+    ctx.restore();
+    setPaintStrokesCount((c) => c + 1);
+  };
+
+  const drawStampAt = (x: number, y: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.save();
+    ctx.font = `${brushSize * 1.5}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 6;
+    ctx.fillText(activeStamp, x, y);
+    ctx.restore();
+
+    sounds.playPop();
+    setPaintStrokesCount((c) => c + 1);
+  };
+
+  const getCanvasCoords = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
+  };
+
+  // MULTI-TOUCH START
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    // Prevent default scrolling on canvas touch
+    e.preventDefault();
+    sounds.playRustle();
+
+    Array.from(e.changedTouches).forEach((touch) => {
+      const coords = getCanvasCoords(touch.clientX, touch.clientY);
+      touchPointsRef.current.set(touch.identifier, coords);
+
+      if (activeTool === 'stamp') {
+        drawStampAt(coords.x, coords.y);
+      } else if (activeTool === 'bucket') {
+        // Fill letter with active color or gradient
+        setLetterBgColor(activeColor);
+        setLetterBgGradient(null);
+        sounds.playSplash();
+        sounds.playColorChime(0.7);
+      } else {
+        // Draw initial dot
+        drawPaintSegment(coords, { x: coords.x + 0.5, y: coords.y + 0.5 });
+      }
+    });
+  };
+
+  // MULTI-TOUCH MOVE (All active fingers update simultaneously!)
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (activeTool === 'stamp' || activeTool === 'bucket') return;
+
+    Array.from(e.changedTouches).forEach((touch) => {
+      const prevCoords = touchPointsRef.current.get(touch.identifier);
+      const curCoords = getCanvasCoords(touch.clientX, touch.clientY);
+
+      if (prevCoords) {
+        drawPaintSegment(prevCoords, curCoords);
+      }
+      touchPointsRef.current.set(touch.identifier, curCoords);
+    });
+  };
+
+  // MULTI-TOUCH END
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    Array.from(e.changedTouches).forEach((touch) => {
+      touchPointsRef.current.delete(touch.identifier);
+    });
+  };
+
+  // MOUSE FALLBACK (For desktop / mouse drag)
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    mouseDrawingRef.current = true;
+    const coords = getCanvasCoords(e.clientX, e.clientY);
+
+    if (activeTool === 'stamp') {
+      drawStampAt(coords.x, coords.y);
+    } else if (activeTool === 'bucket') {
+      setLetterBgColor(activeColor);
+      setLetterBgGradient(null);
+      sounds.playSplash();
+      sounds.playColorChime(0.7);
+    } else {
+      drawPaintSegment(coords, { x: coords.x + 0.5, y: coords.y + 0.5 });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!mouseDrawingRef.current) return;
+    if (activeTool === 'stamp' || activeTool === 'bucket') return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const coords = getCanvasCoords(e.clientX, e.clientY);
+    const prevCoords = {
+      x: coords.x - e.movementX,
+      y: coords.y - e.movementY,
+    };
+    drawPaintSegment(prevCoords, coords);
+  };
+
+  const handleMouseUp = () => {
+    mouseDrawingRef.current = false;
+  };
+
+  // Finish painting and celebrate!
+  const handleFinishPainting = () => {
+    sounds.playTada();
+    sounds.playSparkle();
+    fireConfettiBurst('rainbow');
+    onEarnStar();
+    if (onUnlockSticker) onUnlockSticker(paintLetter);
+
+    triggerKidCheer({
+      message: language === 'nl' ? 'MOOI GESCHILDERD!' : 'BEAUTIFUL ART!',
+      emoji: '🎨',
+    });
+
+    const msg =
+      language === 'nl'
+        ? `Wat een prachtig kunstwerk voor letter ${paintLetter}!`
+        : `Such a wonderful artwork for letter ${paintLetter}!`;
+    sounds.speak(msg, language);
+  };
+
+  // =========================================================================
+  // TYPE 2: SHADE GRADIENT SORT HELPERS
+  // =========================================================================
   const setupShadeRound = (familyIdx: number, letterChar?: string) => {
     setIsShadeComplete(false);
     setPlacedShades([null, null, null, null]);
     const chosenLetter = letterChar || String.fromCharCode(65 + Math.floor(Math.random() * 26));
-    setCurrentLetter(chosenLetter);
+    setShadeTargetLetter(chosenLetter);
 
-    // Shuffle 4 shade indices: [0, 1, 2, 3]
     const indices = [0, 1, 2, 3]
       .map((val) => ({ val, sort: Math.random() }))
       .sort((a, b) => a.sort - b.sort)
@@ -218,7 +485,6 @@ export default function ColorGradingGame({
 
     const fam = SHADE_FAMILIES[familyIdx % SHADE_FAMILIES.length];
     const famName = language === 'nl' ? fam.nameNl : fam.nameEn;
-    
     sounds.playColorChime(0.5);
 
     if (!hasIntroducedShadeRef.current) {
@@ -233,57 +499,24 @@ export default function ColorGradingGame({
     }
   };
 
-  useEffect(() => {
-    if (gameType === 'shade-sort') {
-      setupShadeRound(shadeFamilyIndex);
-    } else if (gameType === 'rainbow-spectrum') {
-      setRainbowPlaced([false, false, false, false, false, false]);
-      setIsRainbowComplete(false);
-      setRainbowTargetIndex(0);
-      sounds.speak(
-        language === 'nl'
-          ? 'Regenboog letters!'
-          : 'Rainbow letters!',
-        language
-      );
-    } else if (gameType === 'gradient-studio') {
-      sounds.speak(
-        language === 'nl'
-          ? 'Kleur & Gradiënt Studio!'
-          : 'Color & Gradient Studio!',
-        language
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameType]);
-
-  // Toddler taps an available shade card to place into next empty slot
   const handleSelectShadeCard = (item: { id: string; stepIndex: number }) => {
     if (isShadeComplete) return;
-
-    // Find next empty target slot
     const emptySlotIdx = placedShades.findIndex((s) => s === null);
     if (emptySlotIdx === -1) return;
-
-    // Check if item is already placed
     if (placedShades.includes(item.stepIndex)) return;
 
     const nextPlaced = [...placedShades];
     nextPlaced[emptySlotIdx] = item.stepIndex;
     setPlacedShades(nextPlaced);
 
-    // Sound chime based on shade intensity
     sounds.playColorChime((item.stepIndex + 1) / 4);
 
     const isAllPlaced = nextPlaced.every((s) => s !== null);
-
-    // Only speak the intermediate step label if not yet finishing the puzzle
     if (!isAllPlaced) {
       const stepInfo = currentShadeFamily.steps[item.stepIndex];
       const stepLabel = language === 'nl' ? stepInfo.labelNl : stepInfo.labelEn;
       sounds.speak(stepLabel, language);
     } else {
-      // Check if sorted in order: 0, 1, 2, 3
       const isCorrectOrder = nextPlaced.every((val, idx) => val === idx);
       if (isCorrectOrder) {
         setIsShadeComplete(true);
@@ -295,7 +528,7 @@ export default function ColorGradingGame({
           emoji: '🎨',
         });
         onEarnStar();
-        if (onUnlockSticker) onUnlockSticker(currentLetter);
+        if (onUnlockSticker) onUnlockSticker(shadeTargetLetter);
 
         const famName = language === 'nl' ? currentShadeFamily.nameNl : currentShadeFamily.nameEn;
         const msg =
@@ -305,28 +538,23 @@ export default function ColorGradingGame({
         sounds.speak(msg, language);
       } else {
         sounds.playBoing();
-        sounds.speak(
-          language === 'nl'
-            ? 'Bijna!'
-            : 'Almost!',
-          language
-        );
+        sounds.speak(language === 'nl' ? 'Bijna!' : 'Almost!', language);
       }
     }
   };
 
-  // Remove card from slot
   const handleRemoveFromRack = (slotIdx: number) => {
     if (isShadeComplete) return;
     if (placedShades[slotIdx] === null) return;
-
     sounds.playRustle();
     const nextPlaced = [...placedShades];
     nextPlaced[slotIdx] = null;
     setPlacedShades(nextPlaced);
   };
 
-  // --- TYPE 2: Rainbow Spectrum Placement ---
+  // =========================================================================
+  // TYPE 3: RAINBOW SPECTRUM HELPERS
+  // =========================================================================
   const handlePlaceRainbowLetter = (idx: number) => {
     if (rainbowPlaced[idx]) return;
 
@@ -351,26 +579,20 @@ export default function ColorGradingGame({
       });
       onEarnStar();
       sounds.speak(
-        language === 'nl'
-          ? 'Magische regenboog!'
-          : 'Magical rainbow!',
+        language === 'nl' ? 'Magische regenboog!' : 'Magical rainbow!',
         language
       );
     }
   };
 
-  // Active studio gradient object
-  const activeStudioGrad = useMemo(() => {
-    return STUDIO_GRADIENTS.find((g) => g.id === selectedGradient) || STUDIO_GRADIENTS[0];
-  }, [selectedGradient]);
-
-  const studioGradientCss = useMemo(() => {
-    const stopsJoined = activeStudioGrad.stops.join(', ');
-    return `linear-gradient(${gradientAngle}deg, ${stopsJoined})`;
-  }, [activeStudioGrad, gradientAngle]);
+  const currentLetterInfo = useMemo(() => {
+    return (
+      ALPHABET_DATA.find((item) => item.letter === paintLetter) || ALPHABET_DATA[0]
+    );
+  }, [paintLetter]);
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-between p-2 sm:p-3 rounded-3xl bg-gradient-to-b from-indigo-900 via-purple-900 to-slate-950 text-white overflow-y-auto overflow-x-hidden scrollbar-none select-none">
+    <div className="relative w-full h-full flex flex-col items-center justify-between p-2 sm:p-3 rounded-3xl bg-gradient-to-b from-indigo-900 via-purple-900 to-slate-950 text-white overflow-y-auto overflow-x-hidden scrollbar-none select-none touch-manipulation">
       {/* Background Floating Color Sparks */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
         <div className="absolute top-4 left-6 text-3xl animate-bounce">🎨</div>
@@ -379,14 +601,14 @@ export default function ColorGradingGame({
         <div className="absolute bottom-16 right-16 text-3xl animate-spin">🌟</div>
       </div>
 
-      {/* Top Controls: 3 Game Type Tabs & Language Notice */}
+      {/* Top Header: Game Mode Tabs (Paint Studio, Shade Sort, Rainbow ABC) */}
       <div className="relative z-10 w-full max-w-4xl flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 bg-black/25 backdrop-blur-md px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl border border-white/20">
-        {/* Game Type Selector Pills */}
+        {/* Game Mode Selector Pills */}
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-full">
           {[
+            { id: 'paint-studio' as const, labelNl: '🖌️ Letter Schilderen', labelEn: '🖌️ Paint Letter' },
             { id: 'shade-sort' as const, labelNl: '📶 Licht & Donker', labelEn: '📶 Shade Sort' },
             { id: 'rainbow-spectrum' as const, labelNl: '🌈 Regenboog ABC', labelEn: '🌈 Rainbow ABC' },
-            { id: 'gradient-studio' as const, labelNl: '🎨 Kleur Studio', labelEn: '🎨 Gradient Studio' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -394,7 +616,7 @@ export default function ColorGradingGame({
                 sounds.playPop();
                 setGameType(tab.id);
               }}
-              className={`px-2.5 sm:px-3 py-1 rounded-full text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1 rounded-full text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                 gameType === tab.id
                   ? 'bg-amber-400 text-amber-950 shadow-md scale-105'
                   : 'bg-white/20 text-white hover:bg-white/30'
@@ -405,58 +627,434 @@ export default function ColorGradingGame({
           ))}
         </div>
 
-        {/* Quick Action Button for current game type */}
-        <div className="flex items-center gap-1.5">
-          {gameType === 'shade-sort' && (
+        {/* Quick Style Switcher (Normal vs Lore) when in Painting Studio */}
+        {gameType === 'paint-studio' && (
+          <div className="flex items-center gap-1 bg-white/15 p-0.5 rounded-full border border-white/30">
             <button
               onClick={() => {
                 sounds.playPop();
-                const nextIdx = (shadeFamilyIndex + 1) % SHADE_FAMILIES.length;
-                setShadeFamilyIndex(nextIdx);
-                setupShadeRound(nextIdx);
+                setLetterStyle('normal');
               }}
-              className="px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 cursor-pointer bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white shadow-md active:scale-95 transition-transform"
+              className={`px-2.5 py-0.5 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
+                letterStyle === 'normal'
+                  ? 'bg-amber-400 text-amber-950 shadow-sm'
+                  : 'text-white/80 hover:text-white'
+              }`}
             >
-              <span>🎲</span>
-              <span className="hidden sm:inline">{language === 'nl' ? 'Nieuwe Kleur' : 'Next Color'}</span>
+              <span>🔤</span>
+              <span>{language === 'nl' ? 'Normaal' : 'Normal'}</span>
             </button>
-          )}
-
-          {gameType === 'rainbow-spectrum' && (
             <button
               onClick={() => {
                 sounds.playPop();
-                setRainbowPlaced([false, false, false, false, false, false]);
-                setIsRainbowComplete(false);
+                setLetterStyle('lore');
               }}
-              className="px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 cursor-pointer bg-white/20 text-white hover:bg-white/30 shadow-md active:scale-95 transition-transform"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{language === 'nl' ? 'Herstel' : 'Reset'}</span>
-            </button>
-          )}
-
-          {gameType === 'gradient-studio' && (
-            <button
-              onClick={() => {
-                sounds.playPop();
-                setStudioLoreMode(!studioLoreMode);
-              }}
-              className={`px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 cursor-pointer transition-all ${
-                studioLoreMode
-                  ? 'bg-purple-500 text-white ring-2 ring-amber-300'
-                  : 'bg-white/20 text-white hover:bg-white/30'
+              className={`px-2.5 py-0.5 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
+                letterStyle === 'lore'
+                  ? 'bg-purple-500 text-white shadow-sm ring-1 ring-amber-300'
+                  : 'text-white/80 hover:text-white'
               }`}
             >
               <span>👾</span>
-              <span className="hidden sm:inline">Alphabet Lore</span>
+              <span>Lore</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Toggle between Uncolored Coloring Page (Blanco Kleurplaat) and Example */}
+        {gameType === 'paint-studio' && (
+          <button
+            onClick={() => {
+              sounds.playPop();
+              setIsColoringOutlineMode((prev) => !prev);
+            }}
+            className={`px-2.5 py-1 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
+              isColoringOutlineMode
+                ? 'bg-amber-400 text-amber-950 shadow-sm ring-1 ring-white'
+                : 'bg-white/20 text-white hover:bg-white/30'
+            }`}
+          >
+            <span>🖍️</span>
+            <span>{isColoringOutlineMode ? (language === 'nl' ? 'Blanco Kleurplaat' : 'Coloring Sheet') : (language === 'nl' ? 'Gekleurd' : 'Colored')}</span>
+          </button>
+        )}
+
+        {/* Quick Action Button for Shade Mode */}
+        {gameType === 'shade-sort' && (
+          <button
+            onClick={() => {
+              sounds.playPop();
+              const nextIdx = (shadeFamilyIndex + 1) % SHADE_FAMILIES.length;
+              setShadeFamilyIndex(nextIdx);
+              setupShadeRound(nextIdx);
+            }}
+            className="px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 cursor-pointer bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white shadow-md active:scale-95 transition-transform"
+          >
+            <span>🎲</span>
+            <span>{language === 'nl' ? 'Nieuwe Kleur' : 'Next Color'}</span>
+          </button>
+        )}
+
+        {/* Quick Action Button for Rainbow Mode */}
+        {gameType === 'rainbow-spectrum' && (
+          <button
+            onClick={() => {
+              sounds.playPop();
+              setRainbowPlaced([false, false, false, false, false, false]);
+              setIsRainbowComplete(false);
+            }}
+            className="px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 cursor-pointer bg-white/20 text-white hover:bg-white/30 shadow-md active:scale-95 transition-transform"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>{language === 'nl' ? 'Herstel' : 'Reset'}</span>
+          </button>
+        )}
       </div>
 
       {/* ========================================================================= */}
-      {/* TYPE 1: SHADE GRADIENT SORT (Licht naar Donker) */}
+      {/* MODE 1: INTERACTIVE MULTI-TOUCH LETTER PAINTING STUDIO */}
+      {/* ========================================================================= */}
+      {gameType === 'paint-studio' && (
+        <div className="relative z-10 w-full max-w-4xl flex-1 flex flex-col items-center justify-between my-1 sm:my-auto">
+          {/* Header prompt banner */}
+          <div
+            onClick={() => {
+              sounds.playBoing();
+              sounds.speak(`${paintLetter}! ${currentLetterInfo.wordNl || currentLetterInfo.word}!`, language);
+            }}
+            className="cursor-pointer group flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border-2 border-white/30 shadow-md active:scale-95 transition-all text-center mb-1"
+          >
+            <div className="w-7 h-7 rounded-full bg-amber-400 text-amber-950 flex items-center justify-center font-black shadow">
+              <Volume2 className="w-4 h-4 animate-pulse" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">{currentLetterInfo.emoji}</span>
+              <span className="text-base sm:text-lg font-black tracking-wide drop-shadow">
+                {language === 'nl'
+                  ? `Schilder de letter ${paintLetter} met je vingers!`
+                  : `Paint letter ${paintLetter} with your fingers!`}
+              </span>
+            </div>
+          </div>
+
+          {/* Main Studio Center: Palette Tools on Left/Top, Canvas in Center, Color/Stamps on Right */}
+          <div className="w-full flex flex-col md:flex-row items-center justify-center gap-2 sm:gap-3 my-auto">
+            {/* Tool Selection Bar (Roller, Brush, Bucket, Stamps, Eraser, Clear) */}
+            <div className="flex md:flex-col items-center gap-1.5 bg-black/30 p-1.5 rounded-2xl border border-white/20">
+              {/* Rainbow Roller */}
+              <button
+                onClick={() => {
+                  sounds.playPop();
+                  setActiveTool('rainbow-roller');
+                  sounds.speak(language === 'nl' ? 'Regenboog Roller!' : 'Rainbow Roller!', language);
+                }}
+                className={`p-2 rounded-xl flex items-center justify-center cursor-pointer transition-all ${
+                  activeTool === 'rainbow-roller'
+                    ? 'bg-gradient-to-r from-red-500 via-yellow-400 to-purple-500 text-white scale-110 shadow-lg ring-2 ring-white'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+                title={language === 'nl' ? 'Regenboog Roller' : 'Rainbow Roller'}
+              >
+                <span className="text-xl">🌈</span>
+              </button>
+
+              {/* Paint Brush */}
+              <button
+                onClick={() => {
+                  sounds.playPop();
+                  setActiveTool('brush');
+                  sounds.speak(language === 'nl' ? 'Verfkwast!' : 'Paint Brush!', language);
+                }}
+                className={`p-2 rounded-xl flex items-center justify-center cursor-pointer transition-all ${
+                  activeTool === 'brush'
+                    ? 'bg-amber-400 text-amber-950 scale-110 shadow-lg ring-2 ring-white'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+                title={language === 'nl' ? 'Verfkwast' : 'Paint Brush'}
+              >
+                <Paintbrush className="w-5 h-5" />
+              </button>
+
+              {/* Bucket Fill */}
+              <button
+                onClick={() => {
+                  sounds.playPop();
+                  setActiveTool('bucket');
+                  sounds.speak(language === 'nl' ? 'Verfemmer!' : 'Paint Bucket!', language);
+                }}
+                className={`p-2 rounded-xl flex items-center justify-center cursor-pointer transition-all ${
+                  activeTool === 'bucket'
+                    ? 'bg-emerald-400 text-emerald-950 scale-110 shadow-lg ring-2 ring-white'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+                title={language === 'nl' ? 'Verfemmer' : 'Paint Bucket'}
+              >
+                <span className="text-xl">🪣</span>
+              </button>
+
+              {/* Stamp Tool */}
+              <button
+                onClick={() => {
+                  sounds.playPop();
+                  setActiveTool('stamp');
+                  sounds.speak(language === 'nl' ? 'Stempels!' : 'Stamps!', language);
+                }}
+                className={`p-2 rounded-xl flex items-center justify-center cursor-pointer transition-all ${
+                  activeTool === 'stamp'
+                    ? 'bg-pink-400 text-pink-950 scale-110 shadow-lg ring-2 ring-white'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+                title={language === 'nl' ? 'Stempels' : 'Stamps'}
+              >
+                <span className="text-xl">⭐</span>
+              </button>
+
+              {/* Eraser */}
+              <button
+                onClick={() => {
+                  sounds.playPop();
+                  setActiveTool('eraser');
+                  sounds.speak(language === 'nl' ? 'Spons' : 'Eraser', language);
+                }}
+                className={`p-2 rounded-xl flex items-center justify-center cursor-pointer transition-all ${
+                  activeTool === 'eraser'
+                    ? 'bg-sky-400 text-sky-950 scale-110 shadow-lg ring-2 ring-white'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+                title={language === 'nl' ? 'Spons / Gum' : 'Eraser'}
+              >
+                <Eraser className="w-5 h-5" />
+              </button>
+
+              {/* Clear Canvas */}
+              <button
+                onClick={() => {
+                  sounds.playRustle();
+                  clearPaintCanvas();
+                  sounds.speak(language === 'nl' ? 'Schoongemaakt!' : 'Clean canvas!', language);
+                }}
+                className="p-2 rounded-xl bg-red-500/80 hover:bg-red-500 text-white flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+                title={language === 'nl' ? 'Wis alles' : 'Clear all'}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Central Paint Canvas on Letter */}
+            <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 rounded-3xl overflow-hidden border-4 border-white shadow-2xl flex items-center justify-center">
+              {/* Background of the letter / card */}
+              <div
+                className="absolute inset-0 transition-colors duration-300"
+                style={{
+                  background: letterBgGradient || letterBgColor,
+                }}
+              />
+
+              {/* Letter Silhouette Base Layer: Starts as uncolored coloring page letter as requested! */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+                {letterStyle === 'lore' ? (
+                  <div
+                    className={`scale-125 transition-all duration-300 ${
+                      isColoringOutlineMode
+                        ? 'filter grayscale contrast-200 opacity-90 drop-shadow-[0_4px_8px_rgba(0,0,0,0.15)]'
+                        : 'opacity-85 drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]'
+                    }`}
+                  >
+                    <AlphabetLoreAvatar
+                      letter={paintLetter}
+                      size="xl"
+                      interactive={false}
+                      asDiv={true}
+                      language={language}
+                    />
+                  </div>
+                ) : (
+                  <span
+                    className="text-[140px] sm:text-[170px] md:text-[190px] font-black drop-shadow-[0_6px_12px_rgba(0,0,0,0.25)] select-none transition-all duration-300"
+                    style={{
+                      color: isColoringOutlineMode ? '#ffffff' : currentLetterInfo.color,
+                      WebkitTextStroke: isColoringOutlineMode ? '7px #0f172a' : '5px #ffffff',
+                    }}
+                  >
+                    {paintLetter}
+                  </span>
+                )}
+              </div>
+
+              {/* Multi-Touch HTML5 Canvas for Toddler Finger-Painting */}
+              <canvas
+                ref={canvasRef}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                className="absolute inset-0 w-full h-full cursor-crosshair touch-none z-10"
+              />
+
+              {/* Gentle Helper hint if not yet painted */}
+              {paintStrokesCount === 0 && (
+                <div className="absolute bottom-2 inset-x-0 mx-auto w-max bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-[11px] font-black pointer-events-none flex items-center gap-1.5 animate-pulse">
+                  <span>👆</span>
+                  <span>
+                    {language === 'nl'
+                      ? 'Veeg met je vingers om te schilderen!'
+                      : 'Swipe with your fingers to paint!'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Right Side: Color Palette & Stamp Options */}
+            <div className="flex flex-col items-center md:items-start gap-2 max-w-xs w-full bg-black/25 backdrop-blur-sm p-2.5 rounded-2xl border border-white/20">
+              {/* If Stamp Tool is active, show stamp choices */}
+              {activeTool === 'stamp' ? (
+                <div className="w-full">
+                  <span className="text-[11px] font-black text-amber-300 flex items-center gap-1 mb-1">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{language === 'nl' ? 'Kies een stempel:' : 'Pick a stamp:'}</span>
+                  </span>
+                  <div className="grid grid-cols-4 gap-1.5 w-full">
+                    {STAMPS.map((stamp) => (
+                      <button
+                        key={stamp}
+                        onClick={() => {
+                          sounds.playPop();
+                          setActiveStamp(stamp);
+                        }}
+                        className={`h-10 rounded-xl text-xl flex items-center justify-center cursor-pointer transition-all ${
+                          activeStamp === stamp
+                            ? 'bg-amber-400 scale-110 shadow-md ring-2 ring-white'
+                            : 'bg-white/15 hover:bg-white/25'
+                        }`}
+                      >
+                        {stamp}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : activeTool === 'bucket' ? (
+                /* If Bucket Tool is active, show gradient & solid presets */
+                <div className="w-full">
+                  <span className="text-[11px] font-black text-amber-300 flex items-center gap-1 mb-1">
+                    <Palette className="w-3.5 h-3.5" />
+                    <span>{language === 'nl' ? 'Kies een gradiënt:' : 'Pick a gradient:'}</span>
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5 w-full">
+                    {GRADIENT_PRESETS.map((grad) => (
+                      <button
+                        key={grad.id}
+                        onClick={() => {
+                          sounds.playSplash();
+                          sounds.playColorChime(0.6);
+                          setLetterBgGradient(grad.css);
+                          sounds.speak(language === 'nl' ? grad.nameNl : grad.nameEn, language);
+                        }}
+                        className="h-9 rounded-xl px-1.5 flex items-center justify-center font-black text-[11px] text-white shadow-md cursor-pointer hover:scale-102 active:scale-95 transition-all border border-white/40"
+                        style={{ background: grad.css }}
+                      >
+                        <span className="drop-shadow">{language === 'nl' ? grad.nameNl : grad.nameEn}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* Color swatches for brush / roller */
+                <div className="w-full">
+                  <span className="text-[11px] font-black text-amber-300 flex items-center gap-1 mb-1">
+                    <Palette className="w-3.5 h-3.5" />
+                    <span>{language === 'nl' ? 'Kies een kleur:' : 'Pick a color:'}</span>
+                  </span>
+                  <div className="grid grid-cols-5 gap-1.5 w-full">
+                    {PAINT_COLORS.map((col) => (
+                      <button
+                        key={col.hex}
+                        onClick={() => {
+                          sounds.playPop();
+                          setActiveColor(col.hex);
+                          if (activeTool !== 'brush') setActiveTool('brush');
+                          sounds.speak(language === 'nl' ? col.nameNl : col.nameEn, language);
+                        }}
+                        className={`w-9 h-9 rounded-full cursor-pointer transition-all ${
+                          activeColor === col.hex && activeTool === 'brush'
+                            ? 'scale-115 ring-3 ring-white shadow-lg'
+                            : 'hover:scale-105 opacity-90'
+                        }`}
+                        style={{
+                          backgroundColor: col.hex,
+                          border: `2px solid ${col.border}`,
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Brush size buttons */}
+              <div className="flex items-center justify-between w-full mt-1 pt-1 border-t border-white/15">
+                <span className="text-[10px] font-bold text-white/80">
+                  {language === 'nl' ? 'Dikte:' : 'Size:'}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {[14, 24, 38].map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setBrushSize(size)}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center cursor-pointer transition-all ${
+                        brushSize === size
+                          ? 'bg-amber-400 text-amber-950 font-black scale-110 shadow-sm'
+                          : 'bg-white/20 text-white'
+                      }`}
+                    >
+                      <div
+                        className="rounded-full bg-current"
+                        style={{ width: `${Math.max(4, size / 3)}px`, height: `${Math.max(4, size / 3)}px` }}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Finish & Earn Star Button */}
+              <button
+                onClick={handleFinishPainting}
+                className="w-full mt-1 py-2 px-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xs sm:text-sm rounded-full shadow-[0_4px_0_#065f46] active:translate-y-1 active:shadow-none flex items-center justify-center gap-1.5 cursor-pointer transition-transform animate-kid-wiggle"
+              >
+                <Wand2 className="w-4 h-4" />
+                <span>{language === 'nl' ? 'KLAAR! STER VERDIENEN! 🌟' : 'DONE! EARN STAR! 🌟'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Letter Chooser A to Z Strip */}
+          <div className="relative z-10 w-full max-w-4xl flex items-center gap-1 overflow-x-auto scrollbar-none py-1 px-1 mt-1">
+            {ALPHABET_DATA.map((item) => (
+              <button
+                key={item.letter}
+                onClick={() => {
+                  sounds.playPop();
+                  setPaintLetter(item.letter);
+                  clearPaintCanvas();
+                  sounds.speak(item.letter, language);
+                }}
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-black text-xs sm:text-sm transition-all cursor-pointer flex-shrink-0 ${
+                  paintLetter === item.letter
+                    ? 'bg-amber-400 text-amber-950 scale-110 shadow-md ring-2 ring-white font-black'
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
+              >
+                {item.letter}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODE 2: SHADE GRADIENT SORT (Licht naar Donker) */}
       {/* ========================================================================= */}
       {gameType === 'shade-sort' && (
         <div className="relative z-10 w-full max-w-3xl flex-1 flex flex-col items-center justify-between my-1 sm:my-auto">
@@ -467,8 +1065,8 @@ export default function ColorGradingGame({
               const famName = language === 'nl' ? currentShadeFamily.nameNl : currentShadeFamily.nameEn;
               sounds.speak(
                 language === 'nl'
-                  ? `Zet de ${currentLetter} van licht naar donker in ${famName}!`
-                  : `Sort ${currentLetter} from light to dark in ${famName}!`,
+                  ? `Zet de ${shadeTargetLetter} van licht naar donker in ${famName}!`
+                  : `Sort ${shadeTargetLetter} from light to dark in ${famName}!`,
                 language
               );
             }}
@@ -536,11 +1134,9 @@ export default function ColorGradingGame({
                           className="text-4xl sm:text-5xl md:text-6xl font-black drop-shadow-md"
                           style={{ color: step!.textColor }}
                         >
-                          {currentLetter}
+                          {shadeTargetLetter}
                         </span>
-                        <span
-                          className="text-[9px] sm:text-[10px] font-black mt-1 px-1.5 py-0.5 rounded-full bg-black/30 text-white"
-                        >
+                        <span className="text-[9px] sm:text-[10px] font-black mt-1 px-1.5 py-0.5 rounded-full bg-black/30 text-white">
                           {language === 'nl' ? step!.labelNl : step!.labelEn}
                         </span>
                       </div>
@@ -561,7 +1157,6 @@ export default function ColorGradingGame({
                       </div>
                     )}
 
-                    {/* Step number badge */}
                     <div className="absolute -top-2 -left-2 bg-black/60 text-white font-black text-[10px] w-5 h-5 rounded-full flex items-center justify-center border border-white/50">
                       {slotIdx + 1}
                     </div>
@@ -636,7 +1231,7 @@ export default function ColorGradingGame({
                       className="text-3xl sm:text-4xl font-black drop-shadow"
                       style={{ color: step.textColor }}
                     >
-                      {currentLetter}
+                      {shadeTargetLetter}
                     </span>
                     <span className="text-[8px] sm:text-[9px] font-black px-1 rounded bg-black/25 text-white mt-0.5">
                       {language === 'nl' ? step.labelNl : step.labelEn}
@@ -650,7 +1245,7 @@ export default function ColorGradingGame({
       )}
 
       {/* ========================================================================= */}
-      {/* TYPE 2: RAINBOW SPECTRUM RUN (Regenboog Spectrum) */}
+      {/* MODE 3: RAINBOW SPECTRUM RUN (Regenboog Spectrum) */}
       {/* ========================================================================= */}
       {gameType === 'rainbow-spectrum' && (
         <div className="relative z-10 w-full max-w-3xl flex-1 flex flex-col items-center justify-between my-1 sm:my-auto">
@@ -736,181 +1331,6 @@ export default function ColorGradingGame({
                 </button>
               </div>
             )}
-          </div>
-
-          {/* Quick letter prompt help */}
-          <div className="text-center text-xs text-white/80 my-2">
-            <span>
-              {language === 'nl'
-                ? '💡 Wist je dat: Rood, Oranje, Geel, Groen, Blauw en Paars de kleuren van de regenboog zijn!'
-                : '💡 Fun fact: Red, Orange, Yellow, Green, Blue and Purple are the colors of the rainbow!'}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TYPE 3: GRADIENT COLORING STUDIO (Kleur & Gradiënt Studio) */}
-      {/* ========================================================================= */}
-      {gameType === 'gradient-studio' && (
-        <div className="relative z-10 w-full max-w-4xl flex-1 flex flex-col items-center justify-between my-1 sm:my-auto overflow-y-auto scrollbar-none">
-          {/* Main Studio Canvas */}
-          <div className="w-full flex flex-col md:flex-row items-center justify-center gap-3 p-3 bg-black/25 backdrop-blur-sm rounded-3xl border-2 border-white/20">
-            {/* Left: The Letter Colored with Gradients */}
-            <div className="flex flex-col items-center justify-center">
-              <div
-                className="relative w-44 h-44 sm:w-52 sm:h-52 md:w-60 md:h-60 rounded-3xl flex items-center justify-center border-4 border-white shadow-2xl transition-all duration-300 overflow-hidden"
-                style={{
-                  background: studioGradientCss,
-                  boxShadow: '0 12px 30px rgba(0,0,0,0.5)',
-                }}
-              >
-                {/* Sparkle stars overlay */}
-                {sparkleActive && (
-                  <div className="absolute inset-0 pointer-events-none opacity-40 animate-pulse">
-                    <span className="absolute top-3 left-4 text-xl">✨</span>
-                    <span className="absolute top-6 right-6 text-xl">🌟</span>
-                    <span className="absolute bottom-5 left-8 text-xl">⭐</span>
-                    <span className="absolute bottom-6 right-6 text-xl">✨</span>
-                  </div>
-                )}
-
-                {/* Styled Letter or Alphabet Lore Avatar */}
-                {studioLoreMode ? (
-                  <div className="scale-125 drop-shadow-2xl">
-                    <AlphabetLoreAvatar
-                      letter={studioLetter}
-                      size="lg"
-                      interactive={true}
-                      language={language}
-                    />
-                  </div>
-                ) : (
-                  <span
-                    className="text-8xl sm:text-9xl md:text-[110px] font-black text-white filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)] select-none animate-kid-bounce"
-                    style={{ WebkitTextStroke: '3px rgba(255,255,255,0.4)' }}
-                  >
-                    {studioLetter}
-                  </span>
-                )}
-
-                {/* Gradient angle badge */}
-                <div className="absolute bottom-2 right-2 bg-black/60 text-white font-mono text-[10px] px-2 py-0.5 rounded-full border border-white/30">
-                  {gradientAngle}°
-                </div>
-              </div>
-
-              {/* Angle slider */}
-              <div className="flex items-center gap-2 mt-2 w-full max-w-xs">
-                <span className="text-[10px] text-white/80 font-bold">Angle:</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="360"
-                  value={gradientAngle}
-                  onChange={(e) => setGradientAngle(parseInt(e.target.value, 10))}
-                  className="w-full accent-amber-400 cursor-pointer"
-                />
-                <span className="text-[10px] font-bold text-amber-300 w-8">{gradientAngle}°</span>
-              </div>
-            </div>
-
-            {/* Right: Palette Choices & Letter Selector */}
-            <div className="flex-1 flex flex-col items-center md:items-start gap-2.5 max-w-md w-full">
-              {/* Palette Choices */}
-              <div className="w-full">
-                <span className="text-xs font-black text-amber-300 flex items-center gap-1 mb-1">
-                  <Palette className="w-3.5 h-3.5" />
-                  <span>
-                    {language === 'nl' ? 'Kies een kleurgradiënt:' : 'Pick a color gradient:'}
-                  </span>
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 w-full">
-                  {STUDIO_GRADIENTS.map((grad) => (
-                    <button
-                      key={grad.id}
-                      onClick={() => {
-                        sounds.playColorChime(0.6);
-                        setSelectedGradient(grad.id);
-                        sounds.speak(language === 'nl' ? grad.nameNl : grad.nameEn, language);
-                      }}
-                      className={`h-11 rounded-xl p-1 flex items-center justify-center font-black text-xs text-white shadow-md cursor-pointer transition-all border-2 ${
-                        selectedGradient === grad.id
-                          ? 'border-white scale-105 ring-2 ring-amber-400'
-                          : 'border-white/30 hover:scale-102 opacity-85 hover:opacity-100'
-                      }`}
-                      style={{ background: grad.css }}
-                    >
-                      <span className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] text-[11px] text-center">
-                        {language === 'nl' ? grad.nameNl : grad.nameEn}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Letter Chooser A to Z */}
-              <div className="w-full">
-                <span className="text-xs font-black text-amber-300 flex items-center gap-1 mb-1">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{language === 'nl' ? 'Kies een letter (A-Z):' : 'Pick a letter (A-Z):'}</span>
-                </span>
-                <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-1 max-w-full">
-                  {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((char) => (
-                    <button
-                      key={char}
-                      onClick={() => {
-                        sounds.playPop();
-                        setStudioLetter(char);
-                        sounds.speak(char, language);
-                      }}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm transition-all cursor-pointer flex-shrink-0 ${
-                        studioLetter === char
-                          ? 'bg-amber-400 text-amber-950 shadow-md scale-110 font-black'
-                          : 'bg-white/20 hover:bg-white/30 text-white'
-                      }`}
-                    >
-                      {char}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions: Reward / Celebrate / Sparkle Toggle */}
-              <div className="flex items-center gap-2 mt-1">
-                <button
-                  onClick={() => {
-                    sounds.playCheer();
-                    sounds.playSparkle();
-                    fireConfettiBurst('rainbow');
-                    onEarnStar();
-                    if (onUnlockSticker) onUnlockSticker(studioLetter);
-                    sounds.speak(
-                      language === 'nl'
-                        ? `Prachtige gradiënt voor letter ${studioLetter}!`
-                        : `Beautiful gradient on letter ${studioLetter}!`,
-                      language
-                    );
-                  }}
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black text-xs sm:text-sm rounded-full shadow-[0_4px_0_#065f46] active:translate-y-1 active:shadow-none flex items-center gap-1.5 cursor-pointer transition-transform"
-                >
-                  <Wand2 className="w-4 h-4" />
-                  <span>{language === 'nl' ? 'Opslaan & Ster! 🌟' : 'Save & Earn Star! 🌟'}</span>
-                </button>
-
-                <button
-                  onClick={() => setSparkleActive(!sparkleActive)}
-                  className={`px-3 py-2 rounded-full text-xs font-black flex items-center gap-1 cursor-pointer transition-all ${
-                    sparkleActive
-                      ? 'bg-yellow-400 text-yellow-950 shadow-sm'
-                      : 'bg-white/20 text-white hover:bg-white/30'
-                  }`}
-                >
-                  <span>✨</span>
-                  <span>{language === 'nl' ? 'Glitter' : 'Glitter'}</span>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}

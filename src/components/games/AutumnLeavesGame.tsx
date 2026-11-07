@@ -143,15 +143,21 @@ export default function AutumnLeavesGame({
 
   const handleCatchItem = (
     item: FallingAutumnItem,
-    e: React.MouseEvent
+    e: React.MouseEvent | React.TouchEvent
   ) => {
     sounds.playRustle();
 
     let clientX = window.innerWidth * (item.x / 100);
     let clientY = item.y;
-    if ('clientX' in e && e.clientX) {
-      clientX = e.clientX;
-      clientY = e.clientY;
+    if ('changedTouches' in e && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    } else if ('touches' in e && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ('clientX' in e && (e as React.MouseEvent).clientX) {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
     }
 
     setBasketCount((prev) => prev + 1);
@@ -332,6 +338,10 @@ export default function AutumnLeavesGame({
             <div
               key={item.id}
               onClick={(e) => handleCatchItem(item, e)}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleCatchItem(item, e);
+              }}
               style={{
                 left: `${item.x}%`,
                 top: `${item.y}px`,

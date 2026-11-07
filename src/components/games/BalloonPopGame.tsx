@@ -128,9 +128,15 @@ export default function BalloonPopGame({
 
     let clientX = window.innerWidth * (balloon.x / 100);
     let clientY = balloon.y;
-    if ('clientX' in e) {
-      clientX = e.clientX;
-      clientY = e.clientY;
+    if ('changedTouches' in e && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    } else if ('touches' in e && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ('clientX' in e) {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
     }
 
     const wordName =
@@ -301,6 +307,10 @@ export default function BalloonPopGame({
             <div
               key={b.id}
               onClick={(e) => handlePop(b, e)}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handlePop(b, e);
+              }}
               style={{
                 left: `${b.x}%`,
                 top: `${b.y}px`,

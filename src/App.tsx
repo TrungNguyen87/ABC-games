@@ -20,6 +20,8 @@ import LoreSpellerGame from './components/games/LoreSpellerGame';
 import LoreCharactersGame from './components/games/LoreCharactersGame';
 import ToddlerCountingGame from './components/games/ToddlerCountingGame';
 import ColorGradingGame from './components/games/ColorGradingGame';
+import AlphabetPuzzleGame from './components/games/AlphabetPuzzleGame';
+import HalloweenPopGame from './components/games/HalloweenPopGame';
 import VoiceSettingsModal from './components/VoiceSettingsModal';
 import GitHubPagesModal from './components/GitHubPagesModal';
 import { Play, Sparkles, Star, Award, Heart } from 'lucide-react';
@@ -108,6 +110,30 @@ export default function App() {
     bgGradient: string;
     borderShadow: string;
   }[] = [
+    {
+      id: 'alphabet-puzzle',
+      titleNl: '🧩 Letter Puzzels',
+      titleEn: '🧩 Alphabet Puzzles',
+      subtitleNl: 'Schuif en leg de puzzelstukjes om de letter te maken!',
+      subtitleEn: 'Move and fit puzzle pieces together to build letters!',
+      icon: '🧩',
+      badgeNl: '🧩 NIEUW!',
+      badgeEn: '🧩 NEW!',
+      bgGradient: 'from-amber-500 via-rose-500 to-indigo-600',
+      borderShadow: '#881337',
+    },
+    {
+      id: 'halloween-pop',
+      titleNl: '🎃 Halloween Spookjes Ploppen',
+      titleEn: '🎃 Halloween Spooky Pop',
+      subtitleNl: 'Plop vliegende pompoenen, spookjes & vleermuizen!',
+      subtitleEn: 'Pop floating pumpkins, ghosts & bats!',
+      icon: '🎃',
+      badgeNl: '🎃 NIEUW!',
+      badgeEn: '🎃 NEW!',
+      bgGradient: 'from-orange-600 via-purple-700 to-slate-900',
+      borderShadow: '#581c87',
+    },
     {
       id: 'color-grading',
       titleNl: '🎨 Kleur & Gradiënt ABC',
@@ -318,7 +344,9 @@ export default function App() {
           currentMode === 'autumn-leaves' ||
           currentMode === 'puddle-splash' ||
           currentMode === 'toddler-counting' ||
-          currentMode === 'color-grading'
+          currentMode === 'color-grading' ||
+          currentMode === 'alphabet-puzzle' ||
+          currentMode === 'halloween-pop'
             ? () => {
                 const cheersNl = ['Jij kan dit!', 'Goed kijken!', 'Wat denk jij?', 'Tik maar!', 'Super bezig!'];
                 const cheersEn = ['You can do it!', 'Look closely!', 'What do you think?', 'Tap your pick!', 'Doing great!'];
@@ -372,6 +400,46 @@ export default function App() {
 
             {/* Quick Hero Banner / Play CTA buttons */}
             <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 my-1.5">
+              {/* Alphabet Puzzle CTA */}
+              <button
+                onClick={() => {
+                  sounds.playPop();
+                  fireConfettiBurst('rainbow');
+                  setCurrentMode('alphabet-puzzle');
+                  if (language === 'nl') {
+                    sounds.speak('Welkom bij de letter puzzels! Laten we puzzelen!', 'nl');
+                  } else {
+                    sounds.speak('Welcome to Alphabet Puzzles! Let us solve puzzles!', 'en');
+                  }
+                }}
+                className="group px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#881337] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer animate-pulse-glow"
+              >
+                <span className="text-2xl animate-spin">🧩</span>
+                <span>
+                  {language === 'nl' ? 'LETTER PUZZELS! 🧩' : 'ALPHABET PUZZLES! 🧩'}
+                </span>
+              </button>
+
+              {/* Halloween Pop CTA */}
+              <button
+                onClick={() => {
+                  sounds.playGhost();
+                  fireConfettiBurst('halloween');
+                  setCurrentMode('halloween-pop');
+                  if (language === 'nl') {
+                    sounds.speak('Welkom bij Halloween Spookjes Ploppen! Plop ze allemaal!', 'nl');
+                  } else {
+                    sounds.speak('Welcome to Halloween Spooky Pop! Pop them all!', 'en');
+                  }
+                }}
+                className="group px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-orange-600 via-purple-700 to-slate-900 hover:from-orange-500 hover:to-purple-600 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#581c87] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer animate-pulse-glow"
+              >
+                <span className="text-2xl animate-kid-bounce">🎃</span>
+                <span>
+                  {language === 'nl' ? 'SPOOKJES PLOPPEN! 🎃' : 'SPOOKY POP! 🎃'}
+                </span>
+              </button>
+
               {/* Halloween Lore Speller CTA */}
               <button
                 onClick={() => {
@@ -560,6 +628,24 @@ export default function App() {
         {/* Game 0.3: Color Grading ABC */}
         {currentMode === 'color-grading' && (
           <ColorGradingGame
+            onEarnStar={handleEarnStar}
+            onUnlockSticker={handleUnlockSticker}
+            language={language}
+          />
+        )}
+
+        {/* Game 0.4: Alphabet Puzzle Game */}
+        {currentMode === 'alphabet-puzzle' && (
+          <AlphabetPuzzleGame
+            onEarnStar={handleEarnStar}
+            onUnlockSticker={handleUnlockSticker}
+            language={language}
+          />
+        )}
+
+        {/* Game 0.45: Halloween Pop Characters Game */}
+        {currentMode === 'halloween-pop' && (
+          <HalloweenPopGame
             onEarnStar={handleEarnStar}
             onUnlockSticker={handleUnlockSticker}
             language={language}

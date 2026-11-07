@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Language } from '../../types/game';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Language, LetterStyleOption } from '../../types/game';
 import { SPELLING_WORDS, SpellingWord } from '../../data/spellingWords';
+import { ALPHABET_DATA } from '../../data/alphabetData';
 import AlphabetLoreAvatar from '../AlphabetLoreAvatar';
+import LetterAvatar from '../LetterAvatar';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
 import { triggerKidCheer } from '../CheerCelebration';
-import { Volume2, Sparkles, RefreshCw, Lightbulb, ChevronRight, Wand2, Moon, Sun } from 'lucide-react';
+import { Volume2, Sparkles, RefreshCw, Lightbulb, ChevronRight, Wand2, Moon, Sun, Shuffle } from 'lucide-react';
 
 interface LoreSpellerGameProps {
   onEarnStar: () => void;
@@ -34,8 +36,10 @@ export default function LoreSpellerGame({
   language,
 }: LoreSpellerGameProps) {
   const [category, setCategory] = useState<SpellerCategory>('halloween');
+  const [letterStyle, setLetterStyle] = useState<LetterStyleOption>('lore');
   const [isSpookyHalloween, setIsSpookyHalloween] = useState<boolean>(true);
   const [showHelperSilhouette, setShowHelperSilhouette] = useState<boolean>(true);
+  const playedWordIdsRef = useRef<Set<string>>(new Set());
   const [currentWord, setCurrentWord] = useState<SpellingWord>(() => {
     const halloweenWords = SPELLING_WORDS.filter((w) => w.category === 'halloween');
     return halloweenWords[Math.floor(Math.random() * halloweenWords.length)] || SPELLING_WORDS[0];
@@ -44,22 +48,53 @@ export default function LoreSpellerGame({
   const [slots, setSlots] = useState<LetterSlot[]>([]);
   const [letterPool, setLetterPool] = useState<PoolLetter[]>([]);
   const [celebrationMessage, setCelebrationMessage] = useState<string>('');
+  const [showWordDrawer, setShowWordDrawer] = useState<boolean>(false);
 
-  // Helper to pick a non-repeating random word
+  // Initialize playedWordIdsRef on mount
+  useEffect(() => {
+    playedWordIdsRef.current.add(currentWord.id);
+  }, []);
+
+  // Filter words in the current category
+  const categoryWords: SpellingWord[] = useMemo(() => {
+    return category === 'all'
+      ? SPELLING_WORDS
+      : SPELLING_WORDS.filter((w) => w.category === category);
+  }, [category]);
+
+  // Improved randomizer: cycles through all words in the selected category without repetition
   const pickNewRandomWord = (selectedCat: SpellerCategory, currentId?: string) => {
     const pool =
       selectedCat === 'all'
         ? SPELLING_WORDS
         : SPELLING_WORDS.filter((w) => w.category === selectedCat);
 
-    const candidates = pool.length > 1 ? pool.filter((w) => w.id !== currentId) : pool;
-    const chosen = candidates[Math.floor(Math.random() * candidates.length)] || pool[0] || SPELLING_WORDS[0];
+    // Filter out words that were already played in this cycle
+    let unplayed = pool.filter((w) => !playedWordIdsRef.current.has(w.id) && w.id !== currentId);
+    if (unplayed.length === 0) {
+      playedWordIdsRef.current.clear();
+      unplayed = pool.filter((w) => w.id !== currentId);
+      if (unplayed.length === 0) unplayed = pool;
+    }
+
+    const chosen = unplayed[Math.floor(Math.random() * unplayed.length)] || pool[0];
+    playedWordIdsRef.current.add(chosen.id);
     setCurrentWord(chosen);
   };
 
   const targetWord = (language === 'nl' ? currentWord.wordNl : currentWord.wordEn).toUpperCase();
 
-  // Setup current word slots and letter choices
+  // Helper to shuffle array with Fisher-Yates algorithm
+  const shuffleArray = <T,>(arr: T[]): T[] => {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  };
+
+  // Setup current word slots and smart letter pool with 4-5 distractors for a rich option pool
   useEffect(() => {
     setIsWordComplete(false);
     setCelebrationMessage('');
@@ -73,26 +108,23 @@ export default function LoreSpellerGame({
     }));
     setSlots(initialSlots);
 
-    // Build letter pool: letters in word + 2 random distractors
-    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const distractors: string[] = [];
-    while (distractors.length < 2) {
-      const rand = alphabet[Math.floor(Math.random() * alphabet.length)];
-      if (!letters.includes(rand) && !distractors.includes(rand)) {
-        distractors.push(rand);
-      }
-    }
+    // Smart friendly distractors: pick 4-5 common preschool letters not in the word
+    const friendlyVowels = ['A', 'E', 'O', 'I', 'U'];
+    const friendlyConsonants = ['B', 'D', 'K', 'M', 'N', 'P', 'R', 'S', 'T', 'L', 'H'];
+    const candidates = [...friendlyVowels, ...friendlyConsonants].filter(
+      (char) => !letters.includes(char)
+    );
+    const shuffledCandidates = shuffleArray(candidates);
+    // Provide 4 distractors so pool has at least 7-10 options for kids to choose from
+    const distractors = shuffledCandidates.slice(0, 4);
 
     const allLetters = [...letters, ...distractors];
-    // Shuffle pool
-    const shuffled = allLetters
-      .map((val) => ({ val, sort: Math.random() }))
-      .sort((a, b) => a.sort - b.sort)
-      .map((item, idx) => ({
-        id: `${item.val}-${idx}-${Date.now()}`,
-        letter: item.val,
-        used: false,
-      }));
+    // Fisher-Yates shuffle
+    const shuffled = shuffleArray(allLetters).map((letter, idx) => ({
+      id: `${letter}-${idx}-${Date.now()}-${Math.random()}`,
+      letter,
+      used: false,
+    }));
 
     setLetterPool(shuffled);
 
@@ -243,6 +275,22 @@ export default function LoreSpellerGame({
 
       {/* Top Controls: Spooky Halloween Toggle, Categories, Random Word Button, Hint Helper */}
       <div className="relative z-10 w-full max-w-4xl flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 bg-black/20 backdrop-blur-md px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl border border-white/20">
+        {/* Style Switcher: Normal Letters vs Alphabet Lore */}
+        <button
+          onClick={() => {
+            sounds.playPop();
+            setLetterStyle((prev) => (prev === 'lore' ? 'normal' : 'lore'));
+          }}
+          className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full font-black text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-md cursor-pointer ${
+            letterStyle === 'normal'
+              ? 'bg-amber-400 text-amber-950 shadow-amber-400/50 scale-105 ring-2 ring-white'
+              : 'bg-purple-600 text-white hover:bg-purple-500'
+          }`}
+          title={language === 'nl' ? 'Kies Normale letters of Alphabet Lore' : 'Choose Normal letters or Alphabet Lore'}
+        >
+          <span>{letterStyle === 'normal' ? '🔤 Normaal' : '👾 Lore'}</span>
+        </button>
+
         {/* Halloween Mode Switch */}
         <button
           onClick={() => {
@@ -301,8 +349,24 @@ export default function LoreSpellerGame({
           ))}
         </div>
 
-        {/* Right Action Buttons: 🎲 Random Word & 💡 Hint */}
+        {/* Right Action Buttons: 📖 Kies Woord, 🎲 Random Word & 💡 Hint */}
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              sounds.playPop();
+              setShowWordDrawer(!showWordDrawer);
+            }}
+            className={`px-2.5 py-1 sm:py-1.5 rounded-full text-xs font-black flex items-center gap-1 cursor-pointer transition-all shadow-md ${
+              showWordDrawer
+                ? 'bg-amber-400 text-amber-950 ring-2 ring-white scale-105'
+                : 'bg-white/20 text-white hover:bg-white/30'
+            }`}
+            title={language === 'nl' ? 'Bekijk alle woorden in deze categorie' : 'Browse all words in this category'}
+          >
+            <span>📖</span>
+            <span>{language === 'nl' ? `Woorden (${categoryWords.length})` : `Words (${categoryWords.length})`}</span>
+          </button>
+
           <button
             onClick={() => {
               sounds.playPop();
@@ -333,6 +397,51 @@ export default function LoreSpellerGame({
           </button>
         </div>
       </div>
+
+      {/* Word Drawer: Kids can browse & tap ANY of the 24+ words in this category */}
+      {showWordDrawer && (
+        <div className="relative z-20 w-full max-w-4xl bg-black/45 backdrop-blur-md rounded-2xl p-2 border-2 border-amber-400/60 shadow-2xl animate-pop-in my-1">
+          <div className="flex items-center justify-between px-2 mb-1 text-[11px] font-black text-amber-300">
+            <span>
+              {language === 'nl'
+                ? `👇 Tik op een woord om direct te spellen (${categoryWords.length} opties):`
+                : `👇 Tap any word to spell it right away (${categoryWords.length} options):`}
+            </span>
+            <button
+              onClick={() => setShowWordDrawer(false)}
+              className="text-white/70 hover:text-white cursor-pointer px-1.5 py-0.5 rounded bg-white/10 text-[10px]"
+            >
+              ✕ {language === 'nl' ? 'Sluiten' : 'Close'}
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 px-1">
+            {categoryWords.map((item: SpellingWord) => {
+              const itemWord = (language === 'nl' ? item.wordNl : item.wordEn).toUpperCase();
+              const isCurrent = item.id === currentWord.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    sounds.playPop();
+                    setCurrentWord(item);
+                    playedWordIdsRef.current.add(item.id);
+                    setShowWordDrawer(false);
+                  }}
+                  className={`px-2.5 py-1.5 rounded-xl font-black text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-all ${
+                    isCurrent
+                      ? 'bg-amber-400 text-amber-950 shadow-md ring-2 ring-white scale-105'
+                      : 'bg-white/15 hover:bg-white/25 text-white'
+                  }`}
+                >
+                  <span className="text-base">{item.emoji}</span>
+                  <span>{itemWord}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Main Target Word Presentation Card */}
       <div className="relative z-10 flex flex-col items-center justify-center my-1 sm:my-auto w-full max-w-2xl text-center flex-shrink-0">
@@ -381,13 +490,25 @@ export default function LoreSpellerGame({
               >
                 {hasLetter ? (
                   <div className="animate-pop-in">
-                    <AlphabetLoreAvatar
-                      letter={slot.placedLetter!}
-                      size="sm"
-                      isSpookyHalloween={isSpookyHalloween}
-                      interactive={false}
-                      asDiv={true}
-                    />
+                    {letterStyle === 'lore' ? (
+                      <AlphabetLoreAvatar
+                        letter={slot.placedLetter!}
+                        size="sm"
+                        isSpookyHalloween={isSpookyHalloween}
+                        interactive={false}
+                        asDiv={true}
+                      />
+                    ) : (
+                      <LetterAvatar
+                        letterInfo={
+                          ALPHABET_DATA.find((l) => l.letter === slot.placedLetter!) || ALPHABET_DATA[0]
+                        }
+                        size="sm"
+                        interactive={false}
+                        asDiv={true}
+                        language={language}
+                      />
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center">
@@ -430,7 +551,7 @@ export default function LoreSpellerGame({
         )}
       </div>
 
-      {/* Available Alphabet Lore Letters Choices (Pool at Bottom) */}
+      {/* Available Letters Choices (Pool at Bottom) */}
       <div className="relative z-10 w-full max-w-4xl bg-black/35 backdrop-blur-md rounded-2xl sm:rounded-3xl p-2 sm:p-2.5 border-2 border-white/20 flex flex-col items-center flex-shrink-0">
         <div className="flex items-center justify-between w-full px-2 mb-1">
           <span className="text-[11px] sm:text-xs font-black text-white/90 flex items-center gap-1.5">
@@ -439,24 +560,38 @@ export default function LoreSpellerGame({
               ? 'Tik op de letters om het woordje te spellen:'
               : 'Tap letters to spell the word:'}
           </span>
-          <button
-            onClick={() => {
-              sounds.playRustle();
-              // Reset slots and pool
-              const nextSlots = slots.map((s) => ({
-                ...s,
-                placedLetter: null,
-                placedPoolIndex: null,
-              }));
-              setSlots(nextSlots);
-              setLetterPool((prev) => prev.map((p) => ({ ...p, used: false })));
-            }}
-            title={language === 'nl' ? 'Opnieuw beginnen' : 'Reset letters'}
-            className="text-[11px] text-white/80 hover:text-white flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full cursor-pointer"
-          >
-            <RefreshCw className="w-3 h-3" />
-            <span>{language === 'nl' ? 'Herstel' : 'Reset'}</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                sounds.playRustle();
+                setLetterPool((prev) => shuffleArray(prev));
+              }}
+              title={language === 'nl' ? 'Schud de letters' : 'Shuffle letter choices'}
+              className="text-[11px] text-white/80 hover:text-white flex items-center gap-1 bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded-full cursor-pointer"
+            >
+              <Shuffle className="w-3 h-3" />
+              <span>{language === 'nl' ? 'Schudden' : 'Shuffle'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                sounds.playRustle();
+                // Reset slots and pool
+                const nextSlots = slots.map((s) => ({
+                  ...s,
+                  placedLetter: null,
+                  placedPoolIndex: null,
+                }));
+                setSlots(nextSlots);
+                setLetterPool((prev) => prev.map((p) => ({ ...p, used: false })));
+              }}
+              title={language === 'nl' ? 'Opnieuw beginnen' : 'Reset letters'}
+              className="text-[11px] text-white/80 hover:text-white flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>{language === 'nl' ? 'Herstel' : 'Reset'}</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 md:gap-3 flex-wrap">
@@ -469,14 +604,26 @@ export default function LoreSpellerGame({
                   : 'hover:scale-105 active:scale-95'
               }`}
             >
-              <AlphabetLoreAvatar
-                letter={item.letter}
-                size="md"
-                isSpookyHalloween={isSpookyHalloween}
-                interactive={!item.used && !isWordComplete}
-                onClick={() => handleSelectPoolLetter(idx)}
-                language={language}
-              />
+              {letterStyle === 'lore' ? (
+                <AlphabetLoreAvatar
+                  letter={item.letter}
+                  size="md"
+                  isSpookyHalloween={isSpookyHalloween}
+                  interactive={!item.used && !isWordComplete}
+                  onClick={() => handleSelectPoolLetter(idx)}
+                  language={language}
+                />
+              ) : (
+                <LetterAvatar
+                  letterInfo={
+                    ALPHABET_DATA.find((l) => l.letter === item.letter) || ALPHABET_DATA[0]
+                  }
+                  size="md"
+                  interactive={!item.used && !isWordComplete}
+                  onClick={() => handleSelectPoolLetter(idx)}
+                  language={language}
+                />
+              )}
             </div>
           ))}
         </div>

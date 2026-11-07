@@ -4,6 +4,8 @@ export type VoiceStyle = 'soft-lady' | 'sweet-story' | 'cheerful';
 
 export type GameMode =
   | 'menu'
+  | 'alphabet-puzzle'
+  | 'halloween-pop'
   | 'color-grading'
   | 'toddler-counting'
   | 'lore-speller'
@@ -18,6 +20,8 @@ export type GameMode =
   | 'music-piano'
   | 'dutch-world'
   | 'sticker-book';
+
+export type LetterStyleOption = 'lore' | 'normal';
 
 export interface LetterInfo {
   letter: string;

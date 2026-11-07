@@ -190,7 +190,10 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
               <button
                 key={key.label}
                 onClick={() => handleKeyTap(key)}
-                onTouchStart={() => handleKeyTap(key)}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleKeyTap(key);
+                }}
                 style={{
                   height: `${heightPercent}%`,
                   backgroundColor: key.color,
