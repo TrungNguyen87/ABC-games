@@ -28,7 +28,7 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
 
   const handleKeyTap = (key: typeof PIANO_KEYS[0]) => {
     setActiveKey(key.label);
-    sounds.playNote(key.freq, instrument === 'xylophone' ? 0.3 : 0.6);
+    sounds.playNote(key.freq, instrument === 'xylophone' ? 0.3 : 0.6, instrument === 'piano' ? 'piano' : 'xylophone');
 
     const wordToSpeak = language === 'nl' ? key.wordNl : key.wordEn;
 
