@@ -1,22 +1,91 @@
 import { VoiceStyle } from '../types/game';
+import { SpeechEngine } from './speechEngine';
+import type { SpeechLang } from './speechText';
 
 /**
- * High-performance, zero-dependency Web Audio synthesizer and preschool SpeechSynthesis manager.
- * Delivers studio-quality tactile audio feedback, anti-click envelopes, rich harmonics,
- * celebratory kids cheer effects, and smooth preschool speech.
+ * Zero-dependency Web Audio synthesizer + preschool speech manager.
+ *
+ * Sound design notes
+ *  - Every voice goes through click-free envelopes, a little stereo movement and a short, soft
+ *    "room" reverb, so effects sound like objects in a space instead of raw oscillator beeps.
+ *  - Bells, xylophone and piano use inharmonic / harmonic partial stacks with their own decay
+ *    times, which is what makes them sound like the real instruments.
+ *  - Water, leaves and crunches are shaped noise (not tones), as in real life.
+ *  - Speech lives in ./speechEngine (voice choice, Dutch letter names, text clean-up).
  */
 
-class SoundManager {
+type Instrument = 'piano' | 'xylophone' | 'bell';
+
+interface ToneOptions {
+  freq: number;
+  /** Piecewise exponential pitch path [secondsFromStart, Hz][]; overrides freq/endFreq. */
+  freqPath?: [number, number][];
+  /** Exponential glide target reached after `glideTime` (default: `decay`). */
+  endFreq?: number;
+  glideTime?: number;
+  type?: OscillatorType;
+  /** Start offset in seconds from now. */
+  at?: number;
+  attack?: number;
+  /** Seconds until the voice has faded to silence. */
+  decay: number;
+  gain: number;
+  /** Cents. */
+  detune?: number;
+  /** -1 (left) … 1 (right). */
+  pan?: number;
+  /** Reverb send, 0 … 1. */
+  space?: number;
+  /** Static low-pass cutoff in Hz to soften harsh waveforms. */
+  lowpass?: number;
+  /** Pitch wobble: LFO rate (Hz) and depth (Hz), optionally easing to endDepth. */
+  vibrato?: { rate: number; depth: number; endDepth?: number };
+}
+
+interface NoiseOptions {
+  at?: number;
+  duration: number;
+  type: BiquadFilterType;
+  freq: number;
+  endFreq?: number;
+  q?: number;
+  gain: number;
+  attack?: number;
+  pan?: number;
+  space?: number;
+}
+
+const SILENCE = 0.0001;
+const MASTER_VOLUME = 0.7;
+
+/** Cubic soft clip: unity-ish for normal levels, rounds peaks smoothly, never exceeds full scale. */
+const SoftLimiter = {
+  curve(): Float32Array<ArrayBuffer> {
+    const n = 2048;
+    const curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * 2 - 1;
+      curve[i] = 1.5 * x - 0.5 * x * x * x;
+    }
+    return curve;
+  },
+};
+const rand = (min: number, max: number) => min + Math.random() * (max - min);
+
+export class SoundManager {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
-  private compressor: DynamicsCompressorNode | null = null;
+  /** Everything (dry voices and the reverb return) is summed here, then soft-limited. */
+  private mixBus: GainNode | null = null;
+  private dryBus: GainNode | null = null;
+  private reverbSend: GainNode | null = null;
   private noiseBuffer: AudioBuffer | null = null;
   private isMuted: boolean = false;
   private isVoiceMuted: boolean = false;
   private isMusicPlaying: boolean = false;
-  private musicInterval: any = null;
-  private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private musicInterval: ReturnType<typeof setInterval> | null = null;
   private voiceStyle: VoiceStyle = 'soft-lady';
+  private readonly speech = new SpeechEngine();
 
   constructor() {
     try {
@@ -27,29 +96,35 @@ class SoundManager {
     } catch {}
   }
 
+  // --- Audio graph ---------------------------------------------------------------------------
+
   private initContext() {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
-        this.ctx = new AudioCtx();
+        const ctx: AudioContext = new AudioCtx();
+        this.ctx = ctx;
+        const t = ctx.currentTime;
 
-        // Dynamics compressor to prevent digital clipping / distortion when multiple sounds overlap
-        this.compressor = this.ctx.createDynamicsCompressor();
-        this.compressor.threshold.setValueAtTime(-14, this.ctx.currentTime);
-        this.compressor.knee.setValueAtTime(24, this.ctx.currentTime);
-        this.compressor.ratio.setValueAtTime(5, this.ctx.currentTime);
-        this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
-        this.compressor.release.setValueAtTime(0.18, this.ctx.currentTime);
+        // Mix bus -> soft limiter -> master. Many sounds can overlap (pop + cheer + confetti), so
+        // peaks are rounded off smoothly instead of clipping. (A DynamicsCompressor was avoided on
+        // purpose: browsers squash short transients like pops by ~13 dB, making them far too quiet.)
+        this.mixBus = ctx.createGain();
+        const limiter = ctx.createWaveShaper();
+        limiter.curve = SoftLimiter.curve();
+        limiter.oversample = '2x';
+        this.masterGain = ctx.createGain();
+        this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : MASTER_VOLUME, t);
+        this.mixBus.connect(limiter);
+        limiter.connect(this.masterGain);
+        this.masterGain.connect(ctx.destination);
 
-        // Master gain node
-        this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.85, this.ctx.currentTime);
+        // dry path
+        this.dryBus = ctx.createGain();
+        this.dryBus.connect(this.mixBus);
 
-        this.compressor.connect(this.masterGain);
-        this.masterGain.connect(this.ctx.destination);
-
-        // Generate reusable 1-second white noise buffer for water splashes & leaf rustles
         this.buildNoiseBuffer();
+        this.buildReverb();
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
@@ -57,47 +132,207 @@ class SoundManager {
     }
   }
 
-  private getDestination(): AudioNode | null {
-    if (!this.ctx) return null;
-    return this.compressor || this.ctx.destination;
+  /** True when sound may play now (not muted) and the audio graph exists. */
+  private ready(): boolean {
+    if (this.isMuted) return false;
+    this.initContext();
+    return !!this.ctx && !!this.dryBus;
   }
 
+  /** 1 s of white noise. Filtered per use into water, leaves, crunches, claps. */
   private buildNoiseBuffer() {
     if (!this.ctx) return;
     try {
-      const bufferSize = this.ctx.sampleRate; // 1 second
-      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const size = this.ctx.sampleRate;
+      const buffer = this.ctx.createBuffer(1, size, this.ctx.sampleRate);
       const data = buffer.getChannelData(0);
-      let lastOut = 0.0;
-      for (let i = 0; i < bufferSize; i++) {
-        // Pink-ish noise filter
-        const white = Math.random() * 2 - 1;
-        data[i] = (lastOut + 0.04 * white) / 1.04;
-        lastOut = data[i];
-      }
+      for (let i = 0; i < size; i++) data[i] = Math.random() * 2 - 1;
       this.noiseBuffer = buffer;
     } catch {}
   }
 
+  /**
+   * Small, warm, synthetic room: exponentially decaying stereo noise whose highs fade faster than
+   * the lows (air absorption). Lends bells, sparkles and fanfares natural "air" and tail.
+   */
+  private buildReverb() {
+    const ctx = this.ctx;
+    if (!ctx || !this.mixBus) return;
+    try {
+      const seconds = 1.5;
+      const len = Math.floor(ctx.sampleRate * seconds);
+      const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const data = ir.getChannelData(ch);
+        let lp = 0;
+        for (let i = 0; i < len; i++) {
+          const progress = i / len;
+          const damping = 0.35 + 0.55 * progress; // darker as it decays
+          const sample = (Math.random() * 2 - 1) * Math.pow(1 - progress, 3);
+          lp = lp * damping + sample * (1 - damping);
+          data[i] = lp;
+        }
+      }
+      const convolver = ctx.createConvolver();
+      convolver.buffer = ir;
+      const wet = ctx.createGain();
+      wet.gain.value = 1.4;
+      this.reverbSend = ctx.createGain();
+      this.reverbSend.connect(convolver);
+      convolver.connect(wet);
+      wet.connect(this.mixBus);
+    } catch {
+      this.reverbSend = null;
+    }
+  }
+
+  /** Connect a finished voice to the dry bus, plus the reverb by `space` (0…1) and a pan position. */
+  private route(node: AudioNode, space = 0, pan = 0) {
+    const ctx = this.ctx!;
+    let out: AudioNode = node;
+    if (pan !== 0 && typeof ctx.createStereoPanner === 'function') {
+      const panner = ctx.createStereoPanner();
+      panner.pan.value = Math.max(-1, Math.min(1, pan));
+      node.connect(panner);
+      out = panner;
+    }
+    out.connect(this.dryBus!);
+    if (space > 0 && this.reverbSend) {
+      const send = ctx.createGain();
+      send.gain.value = space;
+      out.connect(send);
+      send.connect(this.reverbSend);
+    }
+  }
+
+  /** One oscillator voice with a click-free attack/decay envelope. */
+  private tone(o: ToneOptions) {
+    const ctx = this.ctx!;
+    const t = ctx.currentTime + (o.at ?? 0);
+    const attack = Math.min(o.attack ?? 0.005, o.decay * 0.5);
+    const end = t + o.decay;
+
+    const osc = ctx.createOscillator();
+    osc.type = o.type ?? 'sine';
+    if (o.freqPath && o.freqPath.length > 0) {
+      osc.frequency.setValueAtTime(o.freqPath[0][1], t + o.freqPath[0][0]);
+      for (let i = 1; i < o.freqPath.length; i++) {
+        osc.frequency.exponentialRampToValueAtTime(o.freqPath[i][1], t + o.freqPath[i][0]);
+      }
+    } else {
+      osc.frequency.setValueAtTime(o.freq, t);
+      if (o.endFreq) {
+        osc.frequency.exponentialRampToValueAtTime(o.endFreq, t + (o.glideTime ?? o.decay));
+      }
+    }
+    if (o.detune) osc.detune.setValueAtTime(o.detune, t);
+
+    let lfo: OscillatorNode | null = null;
+    if (o.vibrato) {
+      lfo = ctx.createOscillator();
+      const depth = ctx.createGain();
+      lfo.frequency.setValueAtTime(o.vibrato.rate, t);
+      depth.gain.setValueAtTime(o.vibrato.depth, t);
+      if (o.vibrato.endDepth) {
+        depth.gain.exponentialRampToValueAtTime(o.vibrato.endDepth, end);
+      }
+      lfo.connect(depth);
+      depth.connect(osc.frequency);
+    }
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(SILENCE, t);
+    env.gain.linearRampToValueAtTime(o.gain, t + attack);
+    env.gain.exponentialRampToValueAtTime(SILENCE, end);
+
+    if (o.lowpass) {
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(o.lowpass, t);
+      osc.connect(filter);
+      filter.connect(env);
+    } else {
+      osc.connect(env);
+    }
+    this.route(env, o.space, o.pan);
+
+    osc.start(t);
+    osc.stop(end + 0.03);
+    if (lfo) {
+      lfo.start(t);
+      lfo.stop(end + 0.03);
+    }
+  }
+
+  /** A burst of filtered noise – water spray, leaf crackle, crunch, clap, mallet click. */
+  private noise(o: NoiseOptions) {
+    const ctx = this.ctx!;
+    if (!this.noiseBuffer) return;
+    const t = ctx.currentTime + (o.at ?? 0);
+    const end = t + o.duration;
+
+    const src = ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+    src.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = o.type;
+    filter.frequency.setValueAtTime(o.freq, t);
+    if (o.endFreq) filter.frequency.exponentialRampToValueAtTime(o.endFreq, end);
+    filter.Q.setValueAtTime(o.q ?? 1, t);
+
+    const env = ctx.createGain();
+    const attack = Math.min(o.attack ?? 0.004, o.duration * 0.5);
+    env.gain.setValueAtTime(SILENCE, t);
+    env.gain.linearRampToValueAtTime(o.gain, t + attack);
+    env.gain.exponentialRampToValueAtTime(SILENCE, end);
+
+    src.connect(filter);
+    filter.connect(env);
+    this.route(env, o.space, o.pan);
+
+    // random start so repeated bursts never sound identical
+    src.start(t, Math.random() * 0.5);
+    src.stop(end + 0.02);
+  }
+
+  /** Bell / glockenspiel strike: a fundamental plus inharmonic partials that die away faster. */
+  private bell(freq: number, at: number, gain: number, decay: number, space = 0.35, pan = 0) {
+    const partials: [number, number, number][] = [
+      [1, 1, 1],
+      [2.756, 0.34, 0.45],
+      [5.404, 0.16, 0.22],
+    ];
+    partials.forEach(([ratio, g, d]) => {
+      if (freq * ratio > 12000) return;
+      this.tone({
+        freq: freq * ratio,
+        at,
+        gain: gain * g,
+        decay: decay * d,
+        attack: 0.003,
+        space,
+        pan,
+      });
+    });
+  }
+
+  // --- Controls ------------------------------------------------------------------------------
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
     if (this.ctx && this.masterGain) {
-      const now = this.ctx.currentTime;
-      this.masterGain.gain.setValueAtTime(muted ? 0 : 0.85, now);
+      this.masterGain.gain.setTargetAtTime(muted ? 0 : MASTER_VOLUME, this.ctx.currentTime, 0.015);
     }
     if (muted) {
       this.stopMusic();
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
+      this.speech.stop();
     }
   }
 
   public setVoiceMuted(muted: boolean) {
     this.isVoiceMuted = muted;
-    if (muted && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
+    if (muted) this.speech.stop();
   }
 
   public setVoiceStyle(style: VoiceStyle) {
@@ -123,669 +358,450 @@ class SoundManager {
     return this.isMusicPlaying;
   }
 
-  // --- High Quality Tactile Sound Effects ---
+  // --- Sound effects -------------------------------------------------------------------------
 
-  /**
-   * Super juicy, bubbly pop with soft transient click and warm resonant body
-   */
+  /** Bubbly pop: falling body, bright overtone and a tiny "lip" transient. */
   public playPop() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
+    if (!this.ready()) return;
     try {
-      const now = this.ctx.currentTime;
-      const baseFreq = 520 + Math.random() * 120;
-
-      // Primary resonant pitch sweep
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(baseFreq, now);
-      osc.frequency.exponentialRampToValueAtTime(80, now + 0.09);
-
-      // Smooth attack to eliminate click, fast punchy decay
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.42, now + 0.004);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-
-      // Crisp overtone for bright bubble pop
-      const overtone = this.ctx.createOscillator();
-      const overGain = this.ctx.createGain();
-      overtone.type = 'triangle';
-      overtone.frequency.setValueAtTime(baseFreq * 2.2, now);
-      overtone.frequency.exponentialRampToValueAtTime(baseFreq * 0.8, now + 0.04);
-
-      overGain.gain.setValueAtTime(0.001, now);
-      overGain.gain.linearRampToValueAtTime(0.18, now + 0.003);
-      overGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-
-      osc.connect(gain);
-      gain.connect(dest);
-      overtone.connect(overGain);
-      overGain.connect(dest);
-
-      osc.start(now);
-      overtone.start(now);
-      osc.stop(now + 0.095);
-      overtone.stop(now + 0.045);
+      const base = rand(480, 640);
+      const pan = rand(-0.25, 0.25);
+      this.tone({ freq: base, endFreq: 90, decay: 0.11, attack: 0.003, gain: 0.5, pan });
+      this.tone({
+        freq: base * 2.4,
+        endFreq: base * 0.9,
+        decay: 0.05,
+        attack: 0.002,
+        gain: 0.14,
+        type: 'triangle',
+        pan,
+      });
+      this.noise({ duration: 0.025, type: 'highpass', freq: 3200, gain: 0.16, attack: 0.001, pan });
     } catch {}
   }
 
-  /**
-   * Realistic joyful rain puddle splash with filtered water whoosh & liquid plops
-   */
+  /** Puddle splash: spray hiss and rising water "bloops" (real droplets rise in pitch). */
   public playSplash() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
+    if (!this.ready()) return;
     try {
-      const now = this.ctx.currentTime;
-
-      // 1. Water spray whoosh using noise buffer + bandpass filter
-      if (this.noiseBuffer) {
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = this.noiseBuffer;
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(1400, now);
-        filter.frequency.exponentialRampToValueAtTime(450, now + 0.22);
-        filter.Q.setValueAtTime(2.5, now);
-
-        const noiseGain = this.ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.001, now);
-        noiseGain.gain.linearRampToValueAtTime(0.3, now + 0.015);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-
-        noise.connect(filter);
-        filter.connect(noiseGain);
-        noiseGain.connect(dest);
-
-        noise.start(now);
-        noise.stop(now + 0.23);
-      }
-
-      // 2. Liquid water droplet plops
-      const drops = [
-        { f1: 850, f2: 240, delay: 0.01, vol: 0.25 },
-        { f1: 1100, f2: 320, delay: 0.045, vol: 0.2 },
-        { f1: 680, f2: 180, delay: 0.08, vol: 0.18 },
-      ];
-
-      drops.forEach((d) => {
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-        const t = now + d.delay;
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(d.f1, t);
-        osc.frequency.exponentialRampToValueAtTime(d.f2, t + 0.12);
-
-        gain.gain.setValueAtTime(0.001, t);
-        gain.gain.linearRampToValueAtTime(d.vol, t + 0.005);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
-
-        osc.connect(gain);
-        gain.connect(dest);
-
-        osc.start(t);
-        osc.stop(t + 0.125);
+      this.noise({
+        duration: 0.38,
+        type: 'bandpass',
+        freq: 1900,
+        endFreq: 500,
+        q: 0.9,
+        gain: 0.5,
+        attack: 0.012,
+        space: 0.15,
       });
+      this.noise({ duration: 0.13, type: 'highpass', freq: 5200, gain: 0.2, attack: 0.002 });
+
+      const drops = 5;
+      for (let i = 0; i < drops; i++) {
+        const f = rand(320, 720);
+        this.tone({
+          at: 0.02 + i * rand(0.035, 0.06),
+          freq: f,
+          endFreq: f * rand(2, 2.6),
+          glideTime: 0.07,
+          decay: 0.11,
+          attack: 0.004,
+          gain: rand(0.2, 0.34),
+          space: 0.2,
+          pan: rand(-0.5, 0.5),
+        });
+      }
     } catch {}
   }
 
-  /**
-   * Crisp autumn leaves rustle using filtered noise & warm multi-tone leaf crinkles
-   */
+  /** Autumn leaves: a handful of dry, bright crackles over a faint rustle. */
   public playRustle() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
+    if (!this.ready()) return;
     try {
-      const now = this.ctx.currentTime;
-
-      // Filtered noise flutter
-      if (this.noiseBuffer) {
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = this.noiseBuffer;
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(2200, now);
-        filter.frequency.linearRampToValueAtTime(1200, now + 0.16);
-        filter.Q.setValueAtTime(3.0, now);
-
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.001, now);
-        gain.gain.linearRampToValueAtTime(0.22, now + 0.012);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(dest);
-
-        noise.start(now);
-        noise.stop(now + 0.17);
+      this.noise({
+        duration: 0.22,
+        type: 'bandpass',
+        freq: 3200,
+        q: 0.6,
+        gain: 0.14,
+        attack: 0.03,
+      });
+      const crackles = 8;
+      for (let i = 0; i < crackles; i++) {
+        this.noise({
+          at: rand(0, 0.17),
+          duration: rand(0.012, 0.03),
+          type: 'bandpass',
+          freq: rand(2400, 6000),
+          q: 1.4,
+          gain: rand(0.24, 0.6),
+          attack: 0.001,
+          pan: rand(-0.4, 0.4),
+        });
       }
-
-      // Multi-tone crisp leaf crinkles
-      [540, 780, 1120].forEach((freq, idx) => {
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-        const t = now + idx * 0.022;
-
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq + (Math.random() * 80 - 40), t);
-        osc.frequency.exponentialRampToValueAtTime(freq * 0.5, t + 0.1);
-
-        gain.gain.setValueAtTime(0.001, t);
-        gain.gain.linearRampToValueAtTime(0.12, t + 0.004);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-
-        osc.connect(gain);
-        gain.connect(dest);
-
-        osc.start(t);
-        osc.stop(t + 0.105);
-      });
     } catch {}
   }
 
-  /**
-   * Celestial Glockenspiel / Bell Chime with shimmering overtones
-   */
+  /** Glockenspiel arpeggio C5–E5–G5–C6 with shimmering bell partials. */
   public playChime() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
+    if (!this.ready()) return;
     try {
-      // C5, E5, G5, C6 arpeggio
-      const notes = [523.25, 659.25, 783.99, 1046.5];
-      notes.forEach((freq, i) => {
-        const now = this.ctx!.currentTime + i * 0.065;
-
-        // Fundamental bell
-        const osc1 = this.ctx!.createOscillator();
-        const gain1 = this.ctx!.createGain();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(freq, now);
-
-        gain1.gain.setValueAtTime(0.001, now);
-        gain1.gain.linearRampToValueAtTime(0.25, now + 0.005);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-
-        // 2.76x celestial bell harmonic
-        const osc2 = this.ctx!.createOscillator();
-        const gain2 = this.ctx!.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(freq * 2.756, now);
-
-        gain2.gain.setValueAtTime(0.001, now);
-        gain2.gain.linearRampToValueAtTime(0.08, now + 0.004);
-        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-
-        osc1.connect(gain1);
-        gain1.connect(dest);
-        osc2.connect(gain2);
-        gain2.connect(dest);
-
-        osc1.start(now);
-        osc2.start(now);
-        osc1.stop(now + 0.46);
-        osc2.stop(now + 0.23);
-      });
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
+        this.bell(f, i * 0.07, 0.26, 1.1, 0.4, (i - 1.5) * 0.18)
+      );
     } catch {}
   }
 
-  /**
-   * Triumphant brass & chime celebration fanfare with rich chords
-   */
+  /** Fanfare: mellow brass run into a sustained, bell-topped C major chord. */
   public playCheer() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
+    if (!this.ready()) return;
     try {
-      const now = this.ctx.currentTime;
-      // Fanfare: C5 -> E5 -> G5 -> C6 sustained chord with sparkling top note
-      const chords = [
-        { f: 523.25, t: 0, d: 0.14 },
-        { f: 659.25, t: 0.1, d: 0.14 },
-        { f: 783.99, t: 0.2, d: 0.14 },
-        { f: 1046.5, t: 0.32, d: 0.65 }, // Final triumphant sustained chord
-        { f: 1318.51, t: 0.32, d: 0.65 },
-        { f: 1567.98, t: 0.32, d: 0.65 },
-      ];
-
-      chords.forEach((c) => {
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-        const t = now + c.t;
-
-        osc.type = c.t >= 0.32 ? 'triangle' : 'sine';
-        osc.frequency.setValueAtTime(c.f, t);
-
-        gain.gain.setValueAtTime(0.001, t);
-        gain.gain.linearRampToValueAtTime(0.18, t + 0.008);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + c.d);
-
-        osc.connect(gain);
-        gain.connect(dest);
-
-        osc.start(t);
-        osc.stop(t + c.d + 0.01);
+      [523.25, 659.25, 783.99].forEach((f, i) =>
+        this.tone({
+          freq: f,
+          at: i * 0.1,
+          type: 'sawtooth',
+          lowpass: 2200,
+          attack: 0.015,
+          decay: 0.22,
+          gain: 0.08,
+          space: 0.2,
+        })
+      );
+      [523.25, 659.25, 783.99, 1046.5].forEach((f) => {
+        this.tone({
+          freq: f,
+          at: 0.32,
+          type: 'sawtooth',
+          lowpass: 2600,
+          attack: 0.02,
+          decay: 0.95,
+          gain: 0.06,
+          space: 0.3,
+        });
+        this.tone({ freq: f, at: 0.32, attack: 0.01, decay: 0.95, gain: 0.1, space: 0.3 });
       });
-
-      // Cheerful sparkle trail
+      this.bell(2093, 0.34, 0.1, 1.0, 0.5);
       this.playSparkle();
     } catch {}
   }
 
-  /**
-   * Joyful "Ta-daaa!" brass & bell fanfare kids love
-   */
+  /** "Ta-daaa!" – short pickup note, then a full, warm major chord that rings out. */
   public playTada() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
+    if (!this.ready()) return;
     try {
-      const now = this.ctx.currentTime;
-
-      // "Ta-" (G4)
-      const osc1 = this.ctx.createOscillator();
-      const gain1 = this.ctx.createGain();
-      osc1.type = 'triangle';
-      osc1.frequency.setValueAtTime(392.0, now);
-      gain1.gain.setValueAtTime(0.001, now);
-      gain1.gain.linearRampToValueAtTime(0.24, now + 0.006);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-      osc1.connect(gain1);
-      gain1.connect(dest);
-      osc1.start(now);
-      osc1.stop(now + 0.15);
-
-      // "-Daaa!" (C5 + E5 + G5 major chord)
-      const t2 = now + 0.16;
-      [523.25, 659.25, 783.99, 1046.5].forEach((freq) => {
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, t2);
-
-        gain.gain.setValueAtTime(0.001, t2);
-        gain.gain.linearRampToValueAtTime(0.2, t2 + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.001, t2 + 0.7);
-
-        osc.connect(gain);
-        gain.connect(dest);
-        osc.start(t2);
-        osc.stop(t2 + 0.71);
+      this.tone({
+        freq: 392,
+        type: 'triangle',
+        attack: 0.006,
+        decay: 0.15,
+        gain: 0.26,
+        lowpass: 2800,
+        space: 0.15,
       });
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+        this.tone({
+          freq: f,
+          at: 0.17,
+          type: 'triangle',
+          attack: 0.01,
+          decay: 0.95,
+          gain: 0.18,
+          lowpass: 3200,
+          space: 0.3,
+          pan: (i - 1.5) * 0.15,
+        });
+        this.tone({ freq: f, at: 0.17, attack: 0.01, decay: 0.7, gain: 0.07, space: 0.3 });
+      });
+      this.bell(2093, 0.19, 0.08, 0.9, 0.5);
     } catch {}
   }
 
-  /**
-   * Cheerful kids applause / celebration sparkle
-   */
+  /** Applause: dozens of tiny filtered-noise claps that swell and fade like a small crowd. */
+  public playApplause(duration = 1.3, loudness = 1) {
+    if (!this.ready()) return;
+    try {
+      const claps = Math.round(duration * 38);
+      for (let i = 0; i < claps; i++) {
+        const x = Math.random(); // 0…1 across the applause
+        const swell = Math.sin(Math.PI * Math.pow(x, 0.8)); // rises quickly, fades slowly
+        if (Math.random() > swell + 0.15) continue;
+        this.noise({
+          at: x * duration,
+          duration: rand(0.012, 0.035),
+          type: 'bandpass',
+          freq: rand(1100, 3600),
+          q: rand(0.5, 1.2),
+          gain: rand(0.12, 0.3) * loudness * (0.4 + swell),
+          attack: 0.001,
+          pan: rand(-0.8, 0.8),
+          space: 0.12,
+        });
+      }
+    } catch {}
+  }
+
+  /** Kids' celebration: fanfare, sparkles and a short round of applause. */
   public playKidsCheer() {
     if (this.isMuted) return;
     this.playTada();
-    setTimeout(() => {
-      this.playSparkle();
-    }, 180);
+    this.playApplause(1.2, 0.8);
+    setTimeout(() => this.playSparkle(), 180);
   }
 
-  /**
-   * Ascending magic level-up chime
-   */
+  /** Ascending magic level-up arpeggio. */
   public playLevelUp() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
+    if (!this.ready()) return;
     try {
-      const now = this.ctx.currentTime;
-      const scale = [440, 554.37, 659.25, 880, 1108.73, 1318.51];
-      scale.forEach((freq, idx) => {
-        const t = now + idx * 0.045;
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, t);
-
-        gain.gain.setValueAtTime(0.001, t);
-        gain.gain.linearRampToValueAtTime(0.22, t + 0.004);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-
-        osc.connect(gain);
-        gain.connect(dest);
-
-        osc.start(t);
-        osc.stop(t + 0.29);
-      });
+      [440, 554.37, 659.25, 880, 1108.73, 1318.51].forEach((f, i) =>
+        this.bell(f, i * 0.055, 0.22, 0.7, 0.35, (i - 2.5) * 0.12)
+      );
     } catch {}
   }
 
-  /**
-   * Comical cartoon spring boing with pitch vibrato LFO
-   */
+  /** Cartoon spring: a bouncy pitch arc with a wobble that settles. */
   public playBoing() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
+    if (!this.ready()) return;
     try {
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      // Pitch vibrato LFO for true bouncy cartoon spring
-      const lfo = this.ctx.createOscillator();
-      const lfoGain = this.ctx.createGain();
-
-      lfo.frequency.setValueAtTime(14, now); // 14Hz spring wobble
-      lfoGain.gain.setValueAtTime(32, now);
-      lfoGain.gain.exponentialRampToValueAtTime(4, now + 0.26);
-
-      lfo.connect(osc.frequency);
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(220, now);
-      osc.frequency.linearRampToValueAtTime(480, now + 0.08);
-      osc.frequency.linearRampToValueAtTime(170, now + 0.28);
-
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.32, now + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-
-      osc.connect(gain);
-      gain.connect(dest);
-
-      lfo.start(now);
-      osc.start(now);
-      lfo.stop(now + 0.29);
-      osc.stop(now + 0.29);
-    } catch {}
-  }
-
-  /**
-   * Spooky-cute friendly Halloween Boo sound
-   */
-  public playSpookyBoo() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
-    try {
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(200, now);
-      osc.frequency.exponentialRampToValueAtTime(560, now + 0.12);
-      osc.frequency.exponentialRampToValueAtTime(130, now + 0.42);
-
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.3, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
-
-      osc.connect(gain);
-      gain.connect(dest);
-
-      osc.start(now);
-      osc.stop(now + 0.43);
-    } catch {}
-  }
-
-  /**
-   * Wobbly cute ghost sound with soft tremolo
-   */
-  public playGhost() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
-    try {
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      // Gentle tremolo
-      const lfo = this.ctx.createOscillator();
-      const lfoGain = this.ctx.createGain();
-      lfo.frequency.setValueAtTime(8, now);
-      lfoGain.gain.setValueAtTime(20, now);
-      lfo.connect(osc.frequency);
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(360, now);
-      osc.frequency.linearRampToValueAtTime(520, now + 0.18);
-      osc.frequency.linearRampToValueAtTime(420, now + 0.32);
-      osc.frequency.linearRampToValueAtTime(600, now + 0.5);
-
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.25, now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.52);
-
-      osc.connect(gain);
-      gain.connect(dest);
-
-      lfo.start(now);
-      osc.start(now);
-      lfo.stop(now + 0.53);
-      osc.stop(now + 0.53);
-    } catch {}
-  }
-
-  /**
-   * Shimmering musical color chime for color grading & shade transitions
-   */
-  public playColorChime(ratio: number = 0.5) {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
-    try {
-      const now = this.ctx.currentTime;
-      const baseFreq = 300 + Math.max(0, Math.min(1, ratio)) * 520;
-
-      // Dual harmonic chord
-      const freqs = [baseFreq, baseFreq * 1.25, baseFreq * 1.5];
-      freqs.forEach((f, idx) => {
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-
-        osc.type = idx === 0 ? 'sine' : 'triangle';
-        osc.frequency.setValueAtTime(f, now);
-        osc.frequency.exponentialRampToValueAtTime(f * 1.15, now + 0.3);
-
-        gain.gain.setValueAtTime(0.001, now);
-        gain.gain.linearRampToValueAtTime(0.18 / (idx + 1), now + 0.008);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
-
-        osc.connect(gain);
-        gain.connect(dest);
-
-        osc.start(now);
-        osc.stop(now + 0.33);
+      const path: [number, number][] = [
+        [0, 220],
+        [0.08, 480],
+        [0.28, 170],
+      ];
+      this.tone({
+        freq: 220,
+        freqPath: path,
+        vibrato: { rate: 14, depth: 34, endDepth: 4 },
+        attack: 0.006,
+        decay: 0.3,
+        gain: 0.32,
+        space: 0.08,
+      });
+      this.tone({
+        freq: 440,
+        freqPath: path.map(([t, f]) => [t, f * 2] as [number, number]),
+        type: 'triangle',
+        vibrato: { rate: 14, depth: 40, endDepth: 6 },
+        attack: 0.006,
+        decay: 0.22,
+        gain: 0.07,
       });
     } catch {}
   }
 
-  /**
-   * Crunchy cartoon monster munch
-   */
-  public playMunch() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
+  /** Friendly Halloween "Booo!" – a soft rising-then-falling hoot, not scary. */
+  public playSpookyBoo() {
+    if (!this.ready()) return;
+    try {
+      const path: [number, number][] = [
+        [0, 200],
+        [0.12, 560],
+        [0.44, 130],
+      ];
+      this.tone({
+        freq: 200,
+        freqPath: path,
+        attack: 0.012,
+        decay: 0.46,
+        gain: 0.3,
+        lowpass: 1600,
+        space: 0.3,
+      });
+      this.tone({
+        freq: 100,
+        freqPath: path.map(([t, f]) => [t, f / 2] as [number, number]),
+        attack: 0.012,
+        decay: 0.46,
+        gain: 0.12,
+        space: 0.3,
+      });
+    } catch {}
+  }
 
+  /** Wobbly, giggly ghost with a gentle tremolo. */
+  public playGhost() {
+    if (!this.ready()) return;
+    try {
+      this.tone({
+        freq: 360,
+        freqPath: [
+          [0, 360],
+          [0.18, 520],
+          [0.32, 420],
+          [0.5, 600],
+        ],
+        vibrato: { rate: 8, depth: 22 },
+        attack: 0.02,
+        decay: 0.54,
+        gain: 0.4,
+        lowpass: 2000,
+        space: 0.4,
+        pan: rand(-0.3, 0.3),
+      });
+    } catch {}
+  }
+
+  /** Shimmering chord whose pitch follows `ratio` (0 = low, 1 = high) for colour games. */
+  public playColorChime(ratio: number = 0.5) {
+    if (!this.ready()) return;
+    try {
+      const base = 300 + Math.max(0, Math.min(1, ratio)) * 520;
+      [1, 1.25, 1.5].forEach((m, i) =>
+        this.tone({
+          freq: base * m,
+          endFreq: base * m * 1.12,
+          glideTime: 0.3,
+          type: i === 0 ? 'sine' : 'triangle',
+          attack: 0.008,
+          decay: 0.6,
+          gain: 0.32 / (i + 1),
+          lowpass: 3500,
+          space: 0.3,
+          pan: (i - 1) * 0.2,
+        })
+      );
+    } catch {}
+  }
+
+  /** Crunchy monster munches: noise crunch + soft thump, three bites. */
+  public playMunch() {
+    if (!this.ready()) return;
     try {
       for (let i = 0; i < 3; i++) {
-        const now = this.ctx.currentTime + i * 0.075;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(220 + Math.random() * 80, now);
-        osc.frequency.exponentialRampToValueAtTime(55, now + 0.065);
-
-        gain.gain.setValueAtTime(0.001, now);
-        gain.gain.linearRampToValueAtTime(0.24, now + 0.003);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
-
-        osc.connect(gain);
-        gain.connect(dest);
-
-        osc.start(now);
-        osc.stop(now + 0.07);
+        const at = i * 0.085;
+        this.noise({
+          at,
+          duration: 0.06,
+          type: 'bandpass',
+          freq: rand(1200, 2000),
+          q: 1.1,
+          gain: 0.32,
+          attack: 0.002,
+        });
+        this.noise({ at, duration: 0.025, type: 'highpass', freq: 4000, gain: 0.12, attack: 0.001 });
+        this.tone({
+          at,
+          freq: rand(150, 190),
+          endFreq: 60,
+          type: 'triangle',
+          decay: 0.07,
+          attack: 0.003,
+          gain: 0.26,
+        });
       }
     } catch {}
   }
 
-  /**
-   * Cute comedic baby monster burp
-   */
+  /** Cute baby-monster burp: low rumble with a rapid flutter. */
   public playBurp() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
+    if (!this.ready()) return;
     try {
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(115, now);
-      osc.frequency.linearRampToValueAtTime(75, now + 0.14);
-      osc.frequency.linearRampToValueAtTime(145, now + 0.28);
-
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.2, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-
-      osc.connect(gain);
-      gain.connect(dest);
-
-      osc.start(now);
-      osc.stop(now + 0.31);
-    } catch {}
-  }
-
-  /**
-   * High-fidelity musical note for piano / xylophone
-   */
-  public playNote(freq: number, duration: number = 0.45, instrument: 'piano' | 'xylophone' | 'bell' = 'xylophone') {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
-    try {
-      const now = this.ctx.currentTime;
-
-      // Fundamental
-      const osc1 = this.ctx.createOscillator();
-      const gain1 = this.ctx.createGain();
-      osc1.type = instrument === 'piano' ? 'triangle' : 'sine';
-      osc1.frequency.setValueAtTime(freq, now);
-
-      gain1.gain.setValueAtTime(0.001, now);
-      gain1.gain.linearRampToValueAtTime(0.3, now + 0.005);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-      osc1.connect(gain1);
-      gain1.connect(dest);
-      osc1.start(now);
-      osc1.stop(now + duration + 0.01);
-
-      // Acoustic harmonic overtone
-      const osc2 = this.ctx.createOscillator();
-      const gain2 = this.ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(freq * (instrument === 'xylophone' ? 3 : 2), now);
-
-      const overtoneDur = duration * 0.45;
-      gain2.gain.setValueAtTime(0.001, now);
-      gain2.gain.linearRampToValueAtTime(0.12, now + 0.003);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + overtoneDur);
-
-      osc2.connect(gain2);
-      gain2.connect(dest);
-      osc2.start(now);
-      osc2.stop(now + overtoneDur + 0.01);
-    } catch {}
-  }
-
-  /**
-   * Fairy dust sparkle cascade (4 rapid crystal micro-chimes)
-   */
-  public playSparkle() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const dest = this.getDestination();
-    if (!dest) return;
-
-    try {
-      const now = this.ctx.currentTime;
-      const pitches = [1046.5, 1318.51, 1567.98, 2093.0]; // C6, E6, G6, C7
-      pitches.forEach((freq, idx) => {
-        const t = now + idx * 0.035;
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, t);
-
-        gain.gain.setValueAtTime(0.001, t);
-        gain.gain.linearRampToValueAtTime(0.12, t + 0.003);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-
-        osc.connect(gain);
-        gain.connect(dest);
-
-        osc.start(t);
-        osc.stop(t + 0.17);
+      this.tone({
+        freq: 130,
+        freqPath: [
+          [0, 130],
+          [0.14, 75],
+          [0.3, 150],
+        ],
+        type: 'sawtooth',
+        lowpass: 520,
+        vibrato: { rate: 26, depth: 9 },
+        attack: 0.012,
+        decay: 0.32,
+        gain: 0.3,
       });
     } catch {}
   }
 
-  // --- Background Music Box Melody ---
+  /**
+   * Musical note. Each instrument is a stack of partials with its own decay, which is what
+   * separates a piano from a xylophone from a bell.
+   */
+  public playNote(freq: number, duration: number = 0.45, instrument: Instrument = 'xylophone') {
+    if (!this.ready()) return;
+    try {
+      type Partial = [ratio: number, gain: number, decay: number];
+      let partials: Partial[];
+      let decay = duration;
+      let space = 0.12;
+
+      if (instrument === 'piano') {
+        // harmonic series, upper partials fade first, plus a slightly detuned unison for body
+        partials = [
+          [1, 1, 1],
+          [2, 0.45, 0.7],
+          [3, 0.22, 0.5],
+          [4, 0.1, 0.35],
+          [5, 0.05, 0.25],
+        ];
+        decay = Math.max(duration, 0.4) * 1.7;
+        this.tone({ freq, detune: 5, gain: 0.12, decay: decay * 0.9, attack: 0.004, space });
+        this.noise({ duration: 0.02, type: 'lowpass', freq: 2200, gain: 0.07, attack: 0.001 });
+      } else if (instrument === 'bell') {
+        partials = [
+          [1, 1, 1],
+          [2.756, 0.4, 0.5],
+          [5.404, 0.2, 0.3],
+          [8.93, 0.1, 0.2],
+        ];
+        decay = Math.max(duration, 0.4) * 2.4;
+        space = 0.4;
+      } else {
+        // wooden bar: strong fundamental, a bright 3rd and 6th partial that vanish quickly
+        partials = [
+          [1, 1, 1],
+          [3, 0.34, 0.3],
+          [6, 0.12, 0.15],
+        ];
+        decay = Math.max(duration, 0.2) * 1.1;
+        this.noise({ duration: 0.016, type: 'highpass', freq: 2200, gain: 0.1, attack: 0.001 });
+      }
+
+      partials.forEach(([ratio, g, d]) => {
+        if (freq * ratio > 12000) return;
+        this.tone({
+          freq: freq * ratio,
+          gain: 0.3 * g,
+          decay: decay * d,
+          attack: 0.004,
+          space,
+        });
+      });
+    } catch {}
+  }
+
+  /** Fairy-dust sparkle: four rising crystal pings with a little random shimmer. */
+  public playSparkle() {
+    if (!this.ready()) return;
+    try {
+      [1046.5, 1318.51, 1567.98, 2093.0].forEach((f, i) => {
+        const at = i * 0.035 + rand(0, 0.01);
+        const pan = i % 2 === 0 ? -0.35 : 0.35;
+        this.tone({
+          freq: f,
+          at,
+          detune: rand(-8, 8),
+          attack: 0.003,
+          decay: 0.32,
+          gain: 0.2,
+          space: 0.5,
+          pan,
+        });
+        this.tone({
+          freq: f * 2,
+          at,
+          type: 'triangle',
+          attack: 0.002,
+          decay: 0.12,
+          gain: 0.05,
+          space: 0.5,
+          pan,
+        });
+      });
+    } catch {}
+  }
+
+  // --- Background music box ------------------------------------------------------------------
 
   public toggleBackgroundMusic() {
     if (this.isMusicPlaying) {
@@ -802,7 +818,7 @@ class SoundManager {
     this.initContext();
     this.isMusicPlaying = true;
 
-    // Gentle Twinkle Twinkle / ABC Melody
+    // Gentle Twinkle Twinkle / ABC melody
     const melody = [
       261.63, 261.63, 392.0, 392.0, 440.0, 440.0, 392.0, 0,
       349.23, 349.23, 329.63, 329.63, 293.66, 293.66, 261.63, 0,
@@ -812,31 +828,15 @@ class SoundManager {
 
     let noteIdx = 0;
     this.musicInterval = setInterval(() => {
-      if (!this.isMusicPlaying || this.isMuted || !this.ctx) return;
+      if (!this.isMusicPlaying || this.isMuted || !this.ctx || !this.dryBus) return;
       const freq = melody[noteIdx];
-      if (freq > 0) {
-        try {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          const now = this.ctx.currentTime;
-          const dest = this.getDestination();
-          if (!dest) return;
-
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, now);
-
-          gain.gain.setValueAtTime(0.001, now);
-          gain.gain.linearRampToValueAtTime(0.04, now + 0.015);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
-
-          osc.connect(gain);
-          gain.connect(dest);
-
-          osc.start(now);
-          osc.stop(now + 0.42);
-        } catch {}
-      }
       noteIdx = (noteIdx + 1) % melody.length;
+      if (freq <= 0) return;
+      try {
+        // music-box tine: soft fundamental plus a quick-fading metallic partial
+        this.tone({ freq, gain: 0.05, decay: 0.7, attack: 0.008, space: 0.45 });
+        this.tone({ freq: freq * 2.7, gain: 0.012, decay: 0.2, attack: 0.004, space: 0.45 });
+      } catch {}
     }, 450);
   }
 
@@ -848,100 +848,28 @@ class SoundManager {
     }
   }
 
-  // --- Preschool Speech Synthesis: Softer, smoother young lady voice ---
+  // --- Speech --------------------------------------------------------------------------------
 
-  public speak(text: string, lang: 'en' | 'nl' = 'en', onEnd?: () => void) {
+  /**
+   * Say `text` in Dutch or English. The text is cleaned for the voice (letter names, ALL-CAPS
+   * words, "A - B - C", Dutch loanwords) and the best installed voice for the language is used.
+   * `onEnd` is always called exactly once – when speech finishes, fails, is replaced or skipped.
+   */
+  public speak(text: string, lang: SpeechLang = 'en', onEnd?: () => void) {
     if (this.isVoiceMuted || this.isMuted) {
-      if (onEnd) onEnd();
+      onEnd?.();
       return;
     }
-
-    if (!('speechSynthesis' in window)) {
-      if (onEnd) onEnd();
-      return;
-    }
-
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-
-      // Voice style configuration (softer, calmer, friendly young lady preschool tone)
-      if (this.voiceStyle === 'soft-lady') {
-        utterance.rate = 0.84; // relaxed, gentle pacing
-        utterance.pitch = 1.15; // soft, warm feminine pitch
-      } else if (this.voiceStyle === 'sweet-story') {
-        utterance.rate = 0.78; // soothing, gentle bedtime tone
-        utterance.pitch = 1.08;
-      } else {
-        utterance.rate = 0.9;
-        utterance.pitch = 1.22;
-      }
-
-      utterance.lang = lang === 'nl' ? 'nl-NL' : 'en-US';
-
-      // Pick smooth young lady female voice in browser
-      const voices = window.speechSynthesis.getVoices();
-      let preferredVoice: SpeechSynthesisVoice | undefined;
-
-      if (lang === 'nl') {
-        preferredVoice =
-          voices.find(
-            (v) =>
-              (v.lang.startsWith('nl') || v.lang.includes('NL')) &&
-              (v.name.includes('Lotte') ||
-                v.name.includes('Fleur') ||
-                v.name.includes('Ellen') ||
-                v.name.includes('Laura') ||
-                v.name.includes('Sanne') ||
-                v.name.includes('Fenna') ||
-                v.name.includes('Colette') ||
-                v.name.includes('Maaike') ||
-                v.name.toLowerCase().includes('female') ||
-                v.name.includes('Google Nederlands'))
-          ) ||
-          voices.find(
-            (v) =>
-              v.lang.startsWith('nl') ||
-              v.name.toLowerCase().includes('dutch') ||
-              v.name.toLowerCase().includes('nederlands')
-          );
-      } else {
-        preferredVoice =
-          voices.find(
-            (v) =>
-              v.lang.startsWith('en') &&
-              (v.name.includes('Jenny') ||
-                v.name.includes('Ava') ||
-                v.name.includes('Samantha') ||
-                v.name.includes('Victoria') ||
-                v.name.includes('Serena') ||
-                v.name.includes('Karen') ||
-                v.name.includes('Google UK English Female') ||
-                v.name.includes('Natural') ||
-                v.name.toLowerCase().includes('female'))
-          ) || voices.find((v) => v.lang.startsWith('en'));
-      }
-
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
-
-      if (onEnd) {
-        utterance.onend = () => onEnd();
-        utterance.onerror = () => onEnd();
-      }
-
-      this.currentUtterance = utterance;
-      window.speechSynthesis.speak(utterance);
-    } catch {
-      if (onEnd) onEnd();
-    }
+    this.speech.speak(text, lang, { style: this.voiceStyle, onEnd });
   }
 
   public stopSpeaking() {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
+    this.speech.stop();
+  }
+
+  /** Voice discovery / selection, used by the voice settings screen. */
+  public get voices() {
+    return this.speech;
   }
 }
 

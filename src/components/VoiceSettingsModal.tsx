@@ -1,7 +1,8 @@
-import React from 'react';
-import { X, Volume2, Check, Sparkles, Heart } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Volume2, AlertTriangle, Mic } from 'lucide-react';
 import { VoiceStyle, Language } from '../types/game';
 import { sounds } from '../utils/soundEffects';
+import { voiceQuality } from '../utils/voiceSelection';
 
 interface VoiceSettingsModalProps {
   isOpen: boolean;
@@ -18,7 +19,27 @@ export default function VoiceSettingsModal({
   onSelectStyle,
   language,
 }: VoiceSettingsModalProps) {
+  // Browsers load their voice list asynchronously; re-render when it arrives or the choice changes.
+  const [, setVoiceTick] = useState(0);
+  useEffect(() => sounds.voices.subscribe(() => setVoiceTick((n) => n + 1)), []);
+
   if (!isOpen) return null;
+
+  const isNl = language === 'nl';
+  const voiceEngine = sounds.voices;
+  const availableVoices = voiceEngine.getVoicesFor(language);
+  const activeVoice = voiceEngine.getVoiceFor(language);
+  const activeQuality = activeVoice ? voiceQuality(activeVoice) : null;
+  const preferredURI = voiceEngine.getPreferredVoiceURI(language);
+
+  const handlePickVoice = (voiceURI: string) => {
+    voiceEngine.setPreferredVoice(language, voiceURI || null);
+    sounds.playChime();
+    sounds.speak(
+      isNl ? 'Hoi! Zo klink ik. Wat vind je ervan?' : 'Hi! This is how I sound. Do you like it?',
+      language
+    );
+  };
 
   const voiceOptions: {
     id: VoiceStyle;
@@ -181,6 +202,68 @@ export default function VoiceSettingsModal({
               </div>
             );
           })}
+        </div>
+
+        {/* Which voice is actually speaking, and a hint when it could sound better */}
+        <div className="mt-4 rounded-2xl bg-slate-50 border-2 border-slate-100 p-3">
+          <div className="flex items-center gap-2 text-sm font-black text-slate-800">
+            <Mic className="w-4 h-4 text-pink-500" />
+            {isNl ? 'Stem op dit apparaat' : 'Voice on this device'}
+          </div>
+
+          {!voiceEngine.isSupported() ? (
+            <p className="mt-2 text-xs text-amber-700 flex gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              {isNl
+                ? 'Deze browser kan niet voorlezen. Probeer Chrome, Edge of Safari.'
+                : 'This browser cannot read aloud. Try Chrome, Edge or Safari.'}
+            </p>
+          ) : !activeVoice ? (
+            <p className="mt-2 text-xs text-amber-700 flex gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              {isNl
+                ? 'Geen Nederlandse stem gevonden. Installeer een Nederlandse stem in de instellingen van je apparaat (bijvoorbeeld bij Toegankelijkheid › Gesproken inhoud). Microsoft Edge heeft ook zeer natuurlijke Nederlandse stemmen.'
+                : 'No English voice found. Install an English voice in your device settings (for example under Accessibility › Spoken Content).'}
+            </p>
+          ) : (
+            <>
+              <p className="mt-1 text-xs text-slate-600 break-words">
+                {activeVoice.name} <span className="text-slate-400">({activeVoice.lang})</span>
+              </p>
+              {activeQuality === 'robotic' || activeQuality === 'standard' ? (
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {isNl
+                    ? 'Tip: kies hieronder een stem met “Natural”, “Premium” of “Enhanced” in de naam voor een natuurlijker geluid.'
+                    : 'Tip: pick a voice with “Natural”, “Premium” or “Enhanced” in its name below for more natural sound.'}
+                </p>
+              ) : null}
+            </>
+          )}
+
+          {availableVoices.length > 1 && (
+            <label className="mt-2 block text-xs font-bold text-slate-600">
+              {isNl ? 'Andere stem kiezen' : 'Choose another voice'}
+              <select
+                value={preferredURI ?? ''}
+                onChange={(e) => handlePickVoice(e.target.value)}
+                className="mt-1 w-full rounded-xl border-2 border-slate-200 bg-white px-2 py-2 text-xs font-medium text-slate-800"
+              >
+                <option value="">
+                  {isNl ? 'Automatisch (beste stem)' : 'Automatic (best voice)'}
+                </option>
+                {availableVoices.map((v) => {
+                  const q = voiceQuality(v);
+                  const star = q === 'neural' ? '★★ ' : q === 'high' ? '★ ' : '';
+                  return (
+                    <option key={v.voiceURI} value={v.voiceURI}>
+                      {star}
+                      {v.name} ({v.lang})
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+          )}
         </div>
 
         {/* Footer info */}
