@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ALPHABET_DATA } from '../../data/alphabetData';
+import { ALPHABET_DATA, getLetterWord, getLetterEmoji } from '../../data/alphabetData';
 import { LetterInfo, Language } from '../../types/game';
 import LetterAvatar from '../LetterAvatar';
 import { sounds } from '../../utils/soundEffects';
@@ -39,7 +39,7 @@ export default function PhonicsMatchGame({
     const options = [...wrong, target].sort(() => 0.5 - Math.random());
     setPictureOptions(options);
 
-    const targetWord = language === 'nl' ? target.wordNl || target.word : target.word;
+    const targetWord = getLetterWord(target, language);
     setTimeout(() => {
       // Just say the word, no repeating finding questions
       sounds.speak(targetWord, language);
@@ -53,7 +53,8 @@ export default function PhonicsMatchGame({
   const handleSelectOption = (item: LetterInfo) => {
     if (isLocked) return;
 
-    const currentWord = language === 'nl' ? item.wordNl || item.word : item.word;
+    const currentWord = getLetterWord(item, language);
+    const currentEmoji = getLetterEmoji(item, language);
 
     if (item.letter === targetLetter.letter) {
       // Correct match!
@@ -63,7 +64,7 @@ export default function PhonicsMatchGame({
       fireConfettiBurst();
       triggerKidCheer({
         message: language === 'nl' ? 'GOED ZO!' : 'SUPER!',
-        emoji: targetLetter.emoji,
+        emoji: currentEmoji,
       });
       onEarnStar();
       if (onUnlockSticker) onUnlockSticker(targetLetter.letter);
@@ -130,7 +131,8 @@ export default function PhonicsMatchGame({
       <div className="w-full flex flex-col items-center mb-2">
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 w-full max-w-2xl">
           {pictureOptions.map((item) => {
-            const wordDisplay = language === 'nl' ? item.wordNl || item.word : item.word;
+            const wordDisplay = getLetterWord(item, language);
+            const emojiDisplay = getLetterEmoji(item, language);
             const isMatch = selectedWord === wordDisplay;
             const isWrong = wrongWord === wordDisplay;
 
@@ -150,7 +152,7 @@ export default function PhonicsMatchGame({
                 }}
               >
                 <div className="text-5xl sm:text-6xl my-auto transform transition-transform group-hover:scale-110">
-                  {item.emoji}
+                  {emojiDisplay}
                 </div>
 
                 <div className="w-full bg-slate-100 rounded-xl py-1 text-center font-black text-slate-800 text-base sm:text-lg">

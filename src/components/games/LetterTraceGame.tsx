@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ALPHABET_DATA } from '../../data/alphabetData';
+import { ALPHABET_DATA, getLetterWord, getLetterEmoji } from '../../data/alphabetData';
 import { LetterInfo, Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
@@ -235,7 +235,8 @@ export default function LetterTraceGame({
               {language === 'nl' ? 'SUPER GOED!' : 'GREAT JOB!'}
             </div>
             <div className="text-xl font-bold text-white mb-4">
-              {letterInfo.letter} {language === 'nl' ? 'is voor' : 'is for'} {letterWord} {letterInfo.emoji}
+              {letterInfo.letter} {language === 'nl' ? 'is voor' : 'is for'} {letterWord}{' '}
+              {getLetterEmoji(letterInfo, language)}
             </div>
             <button
               onClick={() => {

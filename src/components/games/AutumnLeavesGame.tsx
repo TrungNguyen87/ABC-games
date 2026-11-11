@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { DUTCH_WORLD_WORDS, ALPHABET_DATA } from '../../data/alphabetData';
+import { DUTCH_WORLD_WORDS } from '../../data/alphabetData';
 import { WordItem, Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
 import { triggerKidCheer } from '../CheerCelebration';
-import { Sparkles, Trophy, RefreshCw, Wind } from 'lucide-react';
+import { Sparkles, Trophy, Volume2 } from 'lucide-react';
 
 interface FallingAutumnItem {
   id: number;
@@ -26,49 +26,55 @@ interface AutumnLeavesGameProps {
   language: Language;
 }
 
+type CatchTheme = 'sinterklaas' | 'christmas' | 'autumn';
+
 export default function AutumnLeavesGame({
   onEarnStar,
   onUnlockSticker,
   language,
 }: AutumnLeavesGameProps) {
+  const [theme, setTheme] = useState<CatchTheme>('sinterklaas');
   const [items, setItems] = useState<FallingAutumnItem[]>([]);
   const [mode, setMode] = useState<'free' | 'target'>('free');
-  const [targetItem, setTargetItem] = useState<WordItem>(
-    DUTCH_WORLD_WORDS.find((w) => w.category === 'autumn') || DUTCH_WORLD_WORDS[0]
-  );
+  const [targetItem, setTargetItem] = useState<WordItem>(() => {
+    return DUTCH_WORLD_WORDS.find((w) => w.category === 'sinterklaas') || DUTCH_WORLD_WORDS[0];
+  });
   const [popups, setPopups] = useState<
-    { id: number; x: number; y: number; text: string; color: string }[]
+    { id: number; x: number; y: number; text: string; color: string; emoji: string }[]
   >([]);
   const [basketCount, setBasketCount] = useState<number>(0);
   const nextIdRef = useRef(1);
   const containerRef = useRef<HTMLDivElement | null>(null);
-
-  const autumnWords = DUTCH_WORLD_WORDS.filter((w) => w.category === 'autumn');
-
   const targetTimeoutRef = useRef<any>(null);
+
+  const themeWords = DUTCH_WORLD_WORDS.filter((w) => w.category === theme);
 
   // Choose target for Quest mode
   useEffect(() => {
     if (targetTimeoutRef.current) clearTimeout(targetTimeoutRef.current);
+    const pool = DUTCH_WORLD_WORDS.filter((w) => w.category === theme);
+    const random = pool[Math.floor(Math.random() * pool.length)] || pool[0];
+    setTargetItem(random);
+
     if (mode === 'target') {
-      const random = autumnWords[Math.floor(Math.random() * autumnWords.length)];
-      setTargetItem(random);
       if (language === 'nl') {
         sounds.speak(`Vang ${random.articleNl} ${random.nl}!`, 'nl');
       } else {
         sounds.speak(`Catch the ${random.en}!`, 'en');
       }
     } else {
-      if (language === 'nl') {
-        sounds.speak('Herfstblaadjes vangen!', 'nl');
+      if (theme === 'sinterklaas') {
+        sounds.speak(language === 'nl' ? 'Pepernoten en cadeautjes vangen!' : 'Catch the treats and gifts!', language);
+      } else if (theme === 'christmas') {
+        sounds.speak(language === 'nl' ? 'Sneeuwvlokken en kerstballen vangen!' : 'Catch snowflakes and ornaments!', language);
       } else {
-        sounds.speak('Autumn leaf catch!', 'en');
+        sounds.speak(language === 'nl' ? 'Herfstblaadjes vangen!' : 'Catch autumn leaves!', language);
       }
     }
     return () => {
       if (targetTimeoutRef.current) clearTimeout(targetTimeoutRef.current);
     };
-  }, [mode, language]);
+  }, [theme, mode, language]);
 
   // Falling Items Physics & Spawner
   useEffect(() => {
@@ -76,7 +82,9 @@ export default function AutumnLeavesGame({
     let lastSpawn = Date.now();
 
     const spawnItem = () => {
-      const randomWord = autumnWords[Math.floor(Math.random() * autumnWords.length)];
+      const pool = DUTCH_WORLD_WORDS.filter((w) => w.category === theme);
+      if (!pool.length) return;
+      const randomWord = pool[Math.floor(Math.random() * pool.length)];
       const isSpecialGolden = Math.random() < 0.15;
 
       const newItem: FallingAutumnItem = {
@@ -97,28 +105,29 @@ export default function AutumnLeavesGame({
     };
 
     // Initial fill
+    const pool = DUTCH_WORLD_WORDS.filter((w) => w.category === theme);
     for (let i = 0; i < 5; i++) {
-      const randomWord = autumnWords[Math.floor(Math.random() * autumnWords.length)];
+      const randomWord = pool[Math.floor(Math.random() * pool.length)] || pool[0];
       setItems((prev) => [
         ...prev,
         {
           id: nextIdRef.current++,
           wordItem: randomWord,
-          x: 10 + i * 18 + Math.random() * 5,
-          y: i * 80 + 30,
-          speed: 1.2 + Math.random() * 1.2,
+          x: 10 + i * 16 + Math.random() * 8,
+          y: window.innerHeight * 0.15 + i * 90,
+          speed: 1.1 + Math.random() * 1.3,
           size: 80,
           sway: Math.random() * Math.PI * 2,
           swaySpeed: 0.025,
           rotation: Math.random() * 360,
-          rotSpeed: 1.5,
+          rotSpeed: (Math.random() - 0.5) * 3,
         },
       ]);
     }
 
     const loop = () => {
       const now = Date.now();
-      if (now - lastSpawn > 1200 && items.length < 8) {
+      if (now - lastSpawn > 1100 && items.length < 10) {
         spawnItem();
         lastSpawn = now;
       }
@@ -139,9 +148,9 @@ export default function AutumnLeavesGame({
 
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
-  }, []);
+  }, [theme]);
 
-  const handleCatchItem = (
+  const handleCatch = (
     item: FallingAutumnItem,
     e: React.MouseEvent | React.TouchEvent
   ) => {
@@ -160,9 +169,6 @@ export default function AutumnLeavesGame({
       clientY = (e as React.MouseEvent).clientY;
     }
 
-    setBasketCount((prev) => prev + 1);
-
-    // Text popup
     const popupId = Date.now();
     const wordLabel = language === 'nl' ? item.wordItem.nl : item.wordItem.en;
     setPopups((prev) => [
@@ -171,70 +177,70 @@ export default function AutumnLeavesGame({
         id: popupId,
         x: clientX,
         y: clientY,
-        text: `${item.wordItem.emoji} ${wordLabel}!`,
+        text: wordLabel,
         color: item.wordItem.color,
+        emoji: item.wordItem.emoji,
       },
     ]);
     setTimeout(() => {
       setPopups((prev) => prev.filter((p) => p.id !== popupId));
-    }, 1100);
+    }, 1200);
 
-    // Remove caught item
     setItems((prev) => prev.filter((i) => i.id !== item.id));
+    setBasketCount((prev) => prev + 1);
 
     if (item.isSpecialGolden) {
       sounds.playKidsCheer();
-      fireConfettiBurst(clientX, clientY, 'autumn');
+      sounds.playSparkle();
+      fireConfettiBurst(clientX, clientY, theme === 'sinterklaas' ? 'stars' : theme === 'christmas' ? 'winter' : 'autumn');
       triggerKidCheer({
-        message: language === 'nl' ? 'GOUDEN HERFST!' : 'GOLDEN CATCH!',
-        emoji: '✨',
+        message: language === 'nl' ? 'GOUDEN VANGST!' : 'GOLDEN CATCH!',
+        emoji: '⭐',
         x: clientX,
         y: clientY,
       });
       onEarnStar();
-      sounds.speak(
-        language === 'nl' ? 'Gouden magie!' : 'Golden magic!',
-        language
-      );
+      if (language === 'nl') {
+        sounds.speak('Gouden vangst!', 'nl');
+      } else {
+        sounds.speak('Golden catch!', 'en');
+      }
       return;
     }
 
     if (mode === 'target') {
       if (item.wordItem.id === targetItem.id) {
         sounds.playTada();
-        fireConfettiBurst(clientX, clientY, 'autumn');
+        fireConfettiBurst(clientX, clientY, theme === 'sinterklaas' ? 'stars' : theme === 'christmas' ? 'winter' : 'autumn');
         triggerKidCheer({
-          message: language === 'nl' ? 'GOED GEVANGEN!' : 'GREAT CATCH!',
+          message: language === 'nl' ? 'GOED GEVANGEN!' : 'WELL CAUGHT!',
           emoji: item.wordItem.emoji,
           x: clientX,
           y: clientY,
         });
         onEarnStar();
+        if (onUnlockSticker) onUnlockSticker(item.wordItem.nl.charAt(0).toUpperCase());
 
-        // Direct concise praise without repeating long sentences
-        sounds.speak(
-          language === 'nl'
-            ? `Super! ${item.wordItem.nl}!`
-            : `Awesome! ${item.wordItem.en}!`,
-          language
-        );
+        if (language === 'nl') {
+          sounds.speak(`Super! ${item.wordItem.nl}!`, 'nl');
+        } else {
+          sounds.speak(`Great! ${item.wordItem.en}!`, 'en');
+        }
 
-        // Pick next target cleanly
-        const newTarget = autumnWords[Math.floor(Math.random() * autumnWords.length)];
+        const pool = DUTCH_WORLD_WORDS.filter((w) => w.category === theme);
+        const newTarget = pool[Math.floor(Math.random() * pool.length)] || pool[0];
         setTargetItem(newTarget);
         if (targetTimeoutRef.current) clearTimeout(targetTimeoutRef.current);
         targetTimeoutRef.current = setTimeout(() => {
           const nextName = language === 'nl' ? newTarget.nl : newTarget.en;
           sounds.speak(nextName, language);
-        }, 1100);
+        }, 1200);
       } else {
         sounds.playBoing();
-        // Just say the caught item without repeating lecture
         const tappedName = language === 'nl' ? item.wordItem.nl : item.wordItem.en;
         sounds.speak(tappedName, language);
       }
     } else {
-      // Free catch mode: short joyful sound cue
       const spokenName = language === 'nl' ? item.wordItem.nl : item.wordItem.en;
       sounds.speak(spokenName, language);
       if (Math.random() < 0.25) {
@@ -244,56 +250,97 @@ export default function AutumnLeavesGame({
     }
   };
 
+  const bgStyle =
+    theme === 'sinterklaas'
+      ? 'from-red-950 via-slate-900 to-amber-950 text-white'
+      : theme === 'christmas'
+      ? 'from-emerald-950 via-slate-900 to-red-950 text-white'
+      : 'from-amber-200 via-orange-300 to-amber-700 text-slate-900';
+
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden flex flex-col justify-between select-none bg-gradient-to-b from-amber-200 via-orange-300 to-amber-700"
+      className={`relative w-full h-full overflow-hidden flex flex-col justify-between select-none bg-gradient-to-b ${bgStyle} transition-colors duration-500`}
     >
-      {/* Autumn Trees & Cozy Background Elements */}
-      <div className="absolute top-4 left-6 text-6xl pointer-events-none opacity-40 animate-gentle-float">
-        🍁
-      </div>
-      <div
-        className="absolute top-16 right-10 text-7xl pointer-events-none opacity-30 animate-gentle-float"
-        style={{ animationDelay: '1.2s' }}
-      >
-        🍂
-      </div>
-      <div className="absolute bottom-6 left-8 text-7xl pointer-events-none opacity-70">
-        🍄
-      </div>
-      <div className="absolute bottom-8 right-12 text-7xl pointer-events-none opacity-70">
-        🎃
+      {/* Background Ambience */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
+        {theme === 'sinterklaas' ? (
+          <>
+            <div className="absolute top-4 left-6 text-6xl animate-gentle-float">🌙</div>
+            <div className="absolute top-16 right-10 text-6xl animate-gentle-float">⭐</div>
+            <div className="absolute bottom-6 left-8 text-7xl">🐴</div>
+            <div className="absolute bottom-8 right-12 text-7xl">🎁</div>
+          </>
+        ) : theme === 'christmas' ? (
+          <>
+            <div className="absolute top-4 left-6 text-6xl animate-gentle-float">❄️</div>
+            <div className="absolute top-16 right-10 text-6xl animate-gentle-float">⭐</div>
+            <div className="absolute bottom-6 left-8 text-7xl">🎄</div>
+            <div className="absolute bottom-8 right-12 text-7xl">⛄</div>
+          </>
+        ) : (
+          <>
+            <div className="absolute top-4 left-6 text-6xl animate-gentle-float">🍁</div>
+            <div className="absolute top-16 right-10 text-7xl animate-gentle-float">🍂</div>
+            <div className="absolute bottom-6 left-8 text-7xl">🍄</div>
+            <div className="absolute bottom-8 right-12 text-7xl">🎃</div>
+          </>
+        )}
       </div>
 
-      {/* Top Banner & Mode Toggle */}
-      <div className="z-20 flex flex-col items-center mt-1 px-4">
-        <div className="bg-white/40 backdrop-blur-md p-1 rounded-full flex gap-1 border border-white/60 mb-2">
+      {/* Top Banner, Theme Selector & Mode Toggle */}
+      <div className="z-20 flex flex-col items-center mt-1 px-3">
+        {/* Themes Tabs */}
+        <div className="bg-black/35 backdrop-blur-md p-1 rounded-full flex gap-1 border border-white/30 mb-1.5">
+          {[
+            { id: 'sinterklaas' as const, labelNl: '👑 Sinterklaas', labelEn: '👑 Sint' },
+            { id: 'christmas' as const, labelNl: '🎄 Kerstmis', labelEn: '🎄 Xmas' },
+            { id: 'autumn' as const, labelNl: '🍂 Herfst', labelEn: '🍂 Autumn' },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => {
+                sounds.playPop();
+                setTheme(t.id);
+              }}
+              className={`px-3 py-1 text-xs font-black rounded-full transition-all cursor-pointer ${
+                theme === t.id
+                  ? 'bg-amber-400 text-amber-950 shadow-md scale-105'
+                  : 'text-white/80 hover:text-white'
+              }`}
+            >
+              {language === 'nl' ? t.labelNl : t.labelEn}
+            </button>
+          ))}
+        </div>
+
+        {/* Mode Switcher */}
+        <div className="bg-white/30 backdrop-blur-md p-1 rounded-full flex gap-1 border border-white/50 mb-2">
           <button
             onClick={() => {
               setMode('free');
               sounds.playPop();
             }}
-            className={`px-4 py-1.5 text-xs sm:text-sm font-extrabold rounded-full transition-all cursor-pointer ${
+            className={`px-3.5 py-1 text-xs sm:text-sm font-extrabold rounded-full transition-all cursor-pointer ${
               mode === 'free'
                 ? 'bg-amber-400 text-amber-950 shadow-md'
-                : 'text-amber-950 hover:bg-white/30'
+                : 'text-white hover:text-amber-200'
             }`}
           >
-            {language === 'nl' ? '🍂 Vrij Blaadjes Vangen' : '🍂 Free Leaf Catching'}
+            {language === 'nl' ? '🧺 Vrij Vangen' : '🧺 Free Catch'}
           </button>
           <button
             onClick={() => {
               setMode('target');
               sounds.playPop();
             }}
-            className={`px-4 py-1.5 text-xs sm:text-sm font-extrabold rounded-full transition-all cursor-pointer ${
+            className={`px-3.5 py-1 text-xs sm:text-sm font-extrabold rounded-full transition-all cursor-pointer ${
               mode === 'target'
                 ? 'bg-amber-400 text-amber-950 shadow-md'
-                : 'text-amber-950 hover:bg-white/30'
+                : 'text-white hover:text-amber-200'
             }`}
           >
-            {language === 'nl' ? '🎯 Herfst Zoektocht' : '🎯 Autumn Quest'}
+            {language === 'nl' ? '🎯 Zoekopdracht' : '🎯 Quest'}
           </button>
         </div>
 
@@ -307,40 +354,40 @@ export default function AutumnLeavesGame({
                 language
               )
             }
-            className="flex items-center gap-3 bg-white/50 backdrop-blur-md px-6 py-2 rounded-full border-2 border-white shadow-xl cursor-pointer animate-pulse-glow"
+            className="flex items-center gap-3 bg-white/40 backdrop-blur-md px-6 py-2 rounded-full border-2 border-white shadow-lg cursor-pointer animate-pulse-glow"
           >
-            <span className="text-xl sm:text-2xl font-black text-amber-950 drop-shadow">
-              {language === 'nl' ? 'Vang:' : 'Catch:'}
+            <span className="text-sm sm:text-base font-black drop-shadow">
+              {language === 'nl' ? 'Vang het item:' : 'Catch the item:'}
             </span>
-            <span className="text-3xl sm:text-4xl">{targetItem.emoji}</span>
             <span
               className="text-2xl sm:text-3xl font-black px-4 py-1 rounded-2xl text-white drop-shadow-md"
               style={{ backgroundColor: targetItem.color }}
             >
-              {language === 'nl' ? `${targetItem.articleNl} ${targetItem.nl}` : targetItem.en}
+              {targetItem.emoji} {language === 'nl' ? targetItem.nl : targetItem.en}
             </span>
+            <Volume2 className="w-4 h-4 animate-pulse ml-1" />
           </div>
         ) : (
-          <div className="text-amber-950 font-black text-base sm:text-xl drop-shadow text-center bg-white/30 backdrop-blur-sm px-6 py-1.5 rounded-full">
+          <div className="font-extrabold text-xs sm:text-sm drop-shadow text-center">
             {language === 'nl'
-              ? 'Tik op de vallende herfstblaadjes en eikels! 🍂🐿️'
-              : 'Tap the falling autumn leaves and acorns to catch them! 🍂🐿️'}
+              ? '🍂 Tik op de vallende items om ze in het mandje te verzamelen! 🧺'
+              : '🍂 Tap the falling items to collect them in the basket! 🧺'}
           </div>
         )}
       </div>
 
-      {/* Falling Autumn Playfield */}
-      <div className="absolute inset-0 pointer-events-auto overflow-hidden">
+      {/* Playfield Area */}
+      <div className="absolute inset-0 pointer-events-auto">
         {items.map((item) => {
-          const swayX = Math.sin(item.sway) * 26;
+          const swayX = Math.sin(item.sway) * 28;
 
           return (
             <div
               key={item.id}
-              onClick={(e) => handleCatchItem(item, e)}
+              onClick={(e) => handleCatch(item, e)}
               onTouchStart={(e) => {
                 e.preventDefault();
-                handleCatchItem(item, e);
+                handleCatch(item, e);
               }}
               style={{
                 left: `${item.x}%`,
@@ -349,21 +396,21 @@ export default function AutumnLeavesGame({
                 width: `${item.size}px`,
                 height: `${item.size}px`,
               }}
-              className="absolute cursor-pointer flex flex-col items-center justify-center transition-transform duration-75 active:scale-90"
+              className="absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 active:scale-90 flex flex-col items-center justify-center"
             >
               <div
                 style={{
-                  backgroundColor: item.isSpecialGolden ? '#F59E0B' : item.wordItem.color,
-                  boxShadow: '0 8px 16px rgba(0,0,0,0.25)',
+                  backgroundColor: item.isSpecialGolden ? '#FDE047' : `${item.wordItem.color}33`,
+                  borderColor: item.wordItem.color,
                 }}
-                className={`relative w-full h-full rounded-3xl flex flex-col items-center justify-center text-white p-2 border-2 border-white/80 ${
-                  item.isSpecialGolden ? 'animate-pulse ring-4 ring-yellow-300' : ''
+                className={`w-full h-full rounded-3xl border-3 flex flex-col items-center justify-center p-1.5 shadow-xl backdrop-blur-xs ${
+                  item.isSpecialGolden ? 'ring-4 ring-amber-300 animate-spin-slow' : ''
                 }`}
               >
-                <span className="text-4xl sm:text-5xl drop-shadow">
+                <span className="text-4xl sm:text-5xl filter drop-shadow animate-kid-bounce">
                   {item.wordItem.emoji}
                 </span>
-                <span className="text-[11px] font-black mt-0.5 drop-shadow leading-tight text-center">
+                <span className="text-[10px] sm:text-xs font-black text-center leading-tight bg-black/40 text-white px-1.5 py-0.5 rounded-full mt-1">
                   {language === 'nl' ? item.wordItem.nl : item.wordItem.en}
                 </span>
               </div>
@@ -371,28 +418,29 @@ export default function AutumnLeavesGame({
           );
         })}
 
-        {/* Catch Popups */}
+        {/* Popped text floats */}
         {popups.map((p) => (
           <div
             key={p.id}
             style={{ left: `${p.x}px`, top: `${p.y}px` }}
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none animate-pop-in z-40 bg-white px-4 py-2 rounded-2xl shadow-2xl border-2 border-amber-400 font-black text-xl text-amber-950"
+            className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-none animate-pop-in z-40 bg-white/95 px-4 py-2 rounded-2xl shadow-2xl border-3 border-amber-300 font-black text-lg flex items-center gap-2"
           >
-            {p.text} ✨
+            <span className="text-2xl">{p.emoji}</span>
+            <span style={{ color: p.color }}>{p.text}</span> ✨
           </div>
         ))}
       </div>
 
-      {/* Bottom Leaf Basket */}
-      <div className="z-10 flex flex-col items-center pb-2">
-        <div className="flex items-center gap-3 bg-amber-900/80 backdrop-blur-md px-6 py-2.5 rounded-full border-2 border-amber-300 text-white shadow-2xl">
-          <span className="text-3xl">🧺</span>
-          <span className="text-lg sm:text-xl font-black">
-            {language === 'nl' ? 'Herfstmandje:' : 'Autumn Basket:'}{' '}
-            <span className="text-yellow-300 font-black text-2xl">{basketCount}</span>{' '}
-            {language === 'nl' ? 'gevangen' : 'caught'}
+      {/* Bottom Basket Counter */}
+      <div className="z-10 flex items-center justify-between px-6 py-2 bg-black/25 backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🧺</span>
+          <span className="font-extrabold text-sm sm:text-base">
+            {language === 'nl' ? `Verzameld: ${basketCount}` : `Collected: ${basketCount}`}
           </span>
-          <span className="text-2xl animate-kid-bounce">🍁</span>
+        </div>
+        <div className="text-xs font-bold opacity-80">
+          {language === 'nl' ? 'Vang alles voor sterren! ⭐' : 'Catch all for stars! ⭐'}
         </div>
       </div>
     </div>

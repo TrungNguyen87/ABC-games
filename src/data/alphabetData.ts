@@ -1,4 +1,4 @@
-import { LetterInfo, WordItem } from '../types/game';
+import { LetterInfo, WordItem, Language } from '../types/game';
 
 export const ALPHABET_DATA: LetterInfo[] = [
   {
@@ -9,6 +9,7 @@ export const ALPHABET_DATA: LetterInfo[] = [
     word: 'Apple',
     wordNl: 'Appel',
     emoji: '🍎',
+    emojiNl: '🍎',
     color: '#EF4444',
     shadowColor: '#B91C1C',
     darkColor: '#991B1B',
@@ -30,6 +31,7 @@ export const ALPHABET_DATA: LetterInfo[] = [
     word: 'Bear',
     wordNl: 'Beer',
     emoji: '🐻',
+    emojiNl: '🐻',
     color: '#3B82F6',
     shadowColor: '#1D4ED8',
     darkColor: '#1E3A8A',
@@ -51,7 +53,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'see',
     word: 'Cat',
     wordNl: 'Citroen',
-    emoji: '🍋',
+    emoji: '🐱',
+    emojiNl: '🍋',
     color: '#10B981',
     shadowColor: '#047857',
     darkColor: '#064E3B',
@@ -69,9 +72,10 @@ export const ALPHABET_DATA: LetterInfo[] = [
     lower: 'd',
     phonics: 'duh',
     phonicsNl: 'de',
-    word: 'Dino',
+    word: 'Dolphin',
     wordNl: 'Dolfijn',
     emoji: '🐬',
+    emojiNl: '🐬',
     color: '#F59E0B',
     shadowColor: '#B45309',
     darkColor: '#78350F',
@@ -91,7 +95,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'ee',
     word: 'Elephant',
     wordNl: 'Eend',
-    emoji: '🦆',
+    emoji: '🐘',
+    emojiNl: '🦆',
     color: '#8B5CF6',
     shadowColor: '#6D28D9',
     darkColor: '#4C1D95',
@@ -112,7 +117,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'ef',
     word: 'Frog',
     wordNl: 'Fiets',
-    emoji: '🚲',
+    emoji: '🐸',
+    emojiNl: '🚲',
     color: '#22C55E',
     shadowColor: '#15803D',
     darkColor: '#14532D',
@@ -133,6 +139,7 @@ export const ALPHABET_DATA: LetterInfo[] = [
     word: 'Giraffe',
     wordNl: 'Giraf',
     emoji: '🦒',
+    emojiNl: '🦒',
     color: '#EAB308',
     shadowColor: '#A16207',
     darkColor: '#713F12',
@@ -152,9 +159,10 @@ export const ALPHABET_DATA: LetterInfo[] = [
     lower: 'h',
     phonics: 'huh',
     phonicsNl: 'ha',
-    word: 'Hippo',
+    word: 'Horse',
     wordNl: 'Hond',
-    emoji: '🐶',
+    emoji: '🐴',
+    emojiNl: '🐶',
     color: '#EC4899',
     shadowColor: '#BE185D',
     darkColor: '#831843',
@@ -176,6 +184,7 @@ export const ALPHABET_DATA: LetterInfo[] = [
     word: 'Ice Cream',
     wordNl: 'IJsje',
     emoji: '🍦',
+    emojiNl: '🍦',
     color: '#06B6D4',
     shadowColor: '#0E7490',
     darkColor: '#164E63',
@@ -196,7 +205,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'je',
     word: 'Jellyfish',
     wordNl: 'Jas',
-    emoji: '🧥',
+    emoji: '🪼',
+    emojiNl: '🧥',
     color: '#6366F1',
     shadowColor: '#4338CA',
     darkColor: '#312E81',
@@ -217,7 +227,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'ka',
     word: 'Kangaroo',
     wordNl: 'Kat',
-    emoji: '🐱',
+    emoji: '🦘',
+    emojiNl: '🐱',
     color: '#F97316',
     shadowColor: '#C2410C',
     darkColor: '#7C2D12',
@@ -238,6 +249,7 @@ export const ALPHABET_DATA: LetterInfo[] = [
     word: 'Lion',
     wordNl: 'Leeuw',
     emoji: '🦁',
+    emojiNl: '🦁',
     color: '#E11D48',
     shadowColor: '#9F1239',
     darkColor: '#4C0519',
@@ -255,7 +267,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'em',
     word: 'Monkey',
     wordNl: 'Muis',
-    emoji: '🐭',
+    emoji: '🐵',
+    emojiNl: '🐭',
     color: '#14B8A6',
     shadowColor: '#0F766E',
     darkColor: '#134E4A',
@@ -275,7 +288,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'en',
     word: 'Nest',
     wordNl: 'Neushoorn',
-    emoji: '🦏',
+    emoji: '🪺',
+    emojiNl: '🦏',
     color: '#A855F7',
     shadowColor: '#7E22CE',
     darkColor: '#581C87',
@@ -294,7 +308,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'oo',
     word: 'Octopus',
     wordNl: 'Olifant',
-    emoji: '🐘',
+    emoji: '🐙',
+    emojiNl: '🐘',
     color: '#FB7185',
     shadowColor: '#E11D48',
     darkColor: '#881337',
@@ -314,7 +329,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'pe',
     word: 'Penguin',
     wordNl: 'Paard',
-    emoji: '🐴',
+    emoji: '🐧',
+    emojiNl: '🐴',
     color: '#0284C7',
     shadowColor: '#0369A1',
     darkColor: '#0C4A6E',
@@ -333,7 +349,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'ku',
     word: 'Queen',
     wordNl: 'Quiche',
-    emoji: '🥧',
+    emoji: '👑',
+    emojiNl: '🥧',
     color: '#D946EF',
     shadowColor: '#A21CAF',
     darkColor: '#701A75',
@@ -356,6 +373,7 @@ export const ALPHABET_DATA: LetterInfo[] = [
     word: 'Rainbow',
     wordNl: 'Regenboog',
     emoji: '🌈',
+    emojiNl: '🌈',
     color: '#F43F5E',
     shadowColor: '#BE123C',
     darkColor: '#881337',
@@ -375,7 +393,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'es',
     word: 'Sun',
     wordNl: 'Slak',
-    emoji: '🐌',
+    emoji: '☀️',
+    emojiNl: '🐌',
     color: '#F59E0B',
     shadowColor: '#D97706',
     darkColor: '#78350F',
@@ -394,9 +413,10 @@ export const ALPHABET_DATA: LetterInfo[] = [
     lower: 't',
     phonics: 'tuh',
     phonicsNl: 'te',
-    word: 'Turtle',
+    word: 'Train',
     wordNl: 'Trein',
     emoji: '🚂',
+    emojiNl: '🚂',
     color: '#10B981',
     shadowColor: '#059669',
     darkColor: '#064E3B',
@@ -415,7 +435,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'uu',
     word: 'Umbrella',
     wordNl: 'Uil',
-    emoji: '🦉',
+    emoji: '☂️',
+    emojiNl: '🦉',
     color: '#3B82F6',
     shadowColor: '#2563EB',
     darkColor: '#1E3A8A',
@@ -435,7 +456,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'vee',
     word: 'Volcano',
     wordNl: 'Vlinder',
-    emoji: '🦋',
+    emoji: '🌋',
+    emojiNl: '🦋',
     color: '#EA580C',
     shadowColor: '#C2410C',
     darkColor: '#7C2D12',
@@ -454,6 +476,7 @@ export const ALPHABET_DATA: LetterInfo[] = [
     word: 'Whale',
     wordNl: 'Walvis',
     emoji: '🐳',
+    emojiNl: '🐳',
     color: '#0284C7',
     shadowColor: '#0369A1',
     darkColor: '#0C4A6E',
@@ -474,6 +497,7 @@ export const ALPHABET_DATA: LetterInfo[] = [
     word: 'Xylophone',
     wordNl: 'Xylofoon',
     emoji: '🎵',
+    emojiNl: '🎵',
     color: '#84CC16',
     shadowColor: '#65A30D',
     darkColor: '#365314',
@@ -492,7 +516,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'ei',
     word: 'Yacht',
     wordNl: 'Yoghurt',
-    emoji: '🥣',
+    emoji: '⛵',
+    emojiNl: '🥣',
     color: '#06B6D4',
     shadowColor: '#0891B2',
     darkColor: '#164E63',
@@ -512,7 +537,8 @@ export const ALPHABET_DATA: LetterInfo[] = [
     phonicsNl: 'zet',
     word: 'Zebra',
     wordNl: 'Zon',
-    emoji: '☀️',
+    emoji: '🦓',
+    emojiNl: '☀️',
     color: '#475569',
     shadowColor: '#334155',
     darkColor: '#0F172A',
@@ -526,9 +552,50 @@ export const ALPHABET_DATA: LetterInfo[] = [
   },
 ];
 
-// Rich Dutch World Vocabulary Explorer Dataset
+/**
+ * Clean helpers to resolve word & emoji per language so words and pictures ALWAYS match
+ */
+export function getLetterWord(letter: LetterInfo, lang: Language): string {
+  return lang === 'nl' ? (letter.wordNl || letter.word) : letter.word;
+}
+
+export function getLetterEmoji(letter: LetterInfo, lang: Language): string {
+  return lang === 'nl' ? (letter.emojiNl || letter.emoji) : letter.emoji;
+}
+
+// Rich Dutch World Vocabulary Explorer Dataset with Sinterklaas and Christmas
 export const DUTCH_WORLD_WORDS: WordItem[] = [
-  // Autumn World (Herfstwereld & Bos)
+  // 🎁 Sinterklaas Feest (Tradition & Season)
+  { id: 'sint_persoon', nl: 'Sinterklaas', en: 'Saint Nicholas', emoji: '👑', articleNl: 'de', category: 'sinterklaas', color: '#DC2626', soundCue: 'Welkom Sinterklaas!' },
+  { id: 'piet_helper', nl: 'Piet', en: 'Pete', emoji: '🎁', articleNl: 'de', category: 'sinterklaas', color: '#F59E0B', soundCue: 'Strooigoed!' },
+  { id: 'paard_amerigo', nl: 'Paard Amerigo', en: 'White Horse', emoji: '🐴', articleNl: 'het', category: 'sinterklaas', color: '#E2E8F0', soundCue: 'Klik-klak op de daken!' },
+  { id: 'pepernoten', nl: 'Pepernoten', en: 'Spiced Cookies', emoji: '🍪', articleNl: 'de', category: 'sinterklaas', color: '#B45309', soundCue: 'Knapperig en zoet!' },
+  { id: 'speculaas', nl: 'Speculaaspop', en: 'Speculoos Cookie', emoji: '🍪', articleNl: 'de', category: 'sinterklaas', color: '#92400E', soundCue: 'Kruidig lekker!' },
+  { id: 'chocoladeletter', nl: 'Chocoladeletter', en: 'Chocolate Letter', emoji: '🍫', articleNl: 'de', category: 'sinterklaas', color: '#78350F', soundCue: 'Mmmm, chocolade!' },
+  { id: 'mijter', nl: 'Mijter', en: 'Mitre Hat', emoji: '👑', articleNl: 'de', category: 'sinterklaas', color: '#EF4444', soundCue: 'Rode muts met goud kruis!' },
+  { id: 'gouden_staf', nl: 'Gouden Staf', en: 'Golden Staff', emoji: '🦯', articleNl: 'de', category: 'sinterklaas', color: '#FACC15', soundCue: 'Mooie gouden krul!' },
+  { id: 'pakjesboot', nl: 'Pakjesboot 12', en: 'Steam Ship', emoji: '🚢', articleNl: 'de', category: 'sinterklaas', color: '#0284C7', soundCue: 'Tuut tuut uit Spanje!' },
+  { id: 'schoen_zetten', nl: 'Schoentje', en: 'Shoe with Carrot', emoji: '👞', articleNl: 'het', category: 'sinterklaas', color: '#D97706', soundCue: 'Zet je schoentje maar!' },
+  { id: 'cadeautje_sint', nl: 'Cadeautje', en: 'Present', emoji: '🎁', articleNl: 'het', category: 'sinterklaas', color: '#EC4899', soundCue: 'Pakje uitpakken!' },
+  { id: 'wortel_paard', nl: 'Wortel voor Paard', en: 'Carrot for Horse', emoji: '🥕', articleNl: 'de', category: 'sinterklaas', color: '#EA580C', soundCue: 'Voor het paard!' },
+  { id: 'strooigoed', nl: 'Strooigoed', en: 'Sweet Candies', emoji: '🍬', articleNl: 'het', category: 'sinterklaas', color: '#A855F7', soundCue: 'Strooi maar rond!' },
+  { id: 'zak_sint', nl: 'Grote Zak', en: 'Sack of Toys', emoji: '🎒', articleNl: 'de', category: 'sinterklaas', color: '#78350F', soundCue: 'Vol met cadeautjes!' },
+
+  // 🎄 Christmas & Winter Wonderland (Kerstmis)
+  { id: 'kerstboom', nl: 'Kerstboom', en: 'Christmas Tree', emoji: '🎄', articleNl: 'de', category: 'christmas', color: '#15803D', soundCue: 'Mooie lichtjes in de boom!' },
+  { id: 'kerstman', nl: 'Kerstman', en: 'Santa Claus', emoji: '🎅', articleNl: 'de', category: 'christmas', color: '#DC2626', soundCue: 'Ho ho ho!' },
+  { id: 'rendier', nl: 'Rendier Rudolph', en: 'Reindeer', emoji: '🦌', articleNl: 'het', category: 'christmas', color: '#B45309', soundCue: 'Rode neus!' },
+  { id: 'sneeuwpop', nl: 'Sneeuwpop', en: 'Snowman', emoji: '⛄', articleNl: 'de', category: 'christmas', color: '#38BDF8', soundCue: 'Koude sneeuwman!' },
+  { id: 'kerstbal', nl: 'Kerstbal', en: 'Christmas Bauble', emoji: '🔮', articleNl: 'de', category: 'christmas', color: '#EF4444', soundCue: 'Glinsterende kerstbal!' },
+  { id: 'kerstster', nl: 'Gouden Ster', en: 'Golden Star', emoji: '⭐', articleNl: 'de', category: 'christmas', color: '#FACC15', soundCue: 'Stralende piekster!' },
+  { id: 'kerstklok', nl: 'Kerstklok', en: 'Christmas Bell', emoji: '🔔', articleNl: 'de', category: 'christmas', color: '#F59E0B', soundCue: 'Kling kling kling!' },
+  { id: 'zuurstok', nl: 'Zuurstok', en: 'Candy Cane', emoji: '🦯', articleNl: 'de', category: 'christmas', color: '#F43F5E', soundCue: 'Rood-wit snoepje!' },
+  { id: 'kerstengel', nl: 'Kerstengel', en: 'Christmas Angel', emoji: '👼', articleNl: 'de', category: 'christmas', color: '#FDE047', soundCue: 'Vleugels van goud!' },
+  { id: 'kerstsok', nl: 'Kerstsok', en: 'Christmas Stocking', emoji: '🧦', articleNl: 'de', category: 'christmas', color: '#DC2626', soundCue: 'Aan de schouw!' },
+  { id: 'kerstslee', nl: 'Kerstslee', en: 'Sleigh', emoji: '🛷', articleNl: 'de', category: 'christmas', color: '#92400E', soundCue: 'Glijden door de sneeuw!' },
+  { id: 'kerstkrans', nl: 'Kerstkrans', en: 'Holiday Wreath', emoji: '🍩', articleNl: 'de', category: 'christmas', color: '#16A34A', soundCue: 'Krans aan de deur!' },
+
+  // 🍂 Autumn World (Herfstwereld & Bos)
   { id: 'herfst', nl: 'Herfst', en: 'Autumn', emoji: '🍂', articleNl: 'de', category: 'autumn', color: '#D97706', soundCue: 'Ritsel ritsel!' },
   { id: 'blaadje', nl: 'Blaadje', en: 'Leaf', emoji: '🍁', articleNl: 'het', category: 'autumn', color: '#EA580C', soundCue: 'Knisper knisper!' },
   { id: 'eikel', nl: 'Eikeltje', en: 'Acorn', emoji: '🌰', articleNl: 'het', category: 'autumn', color: '#B45309', soundCue: 'Tik tak!' },
@@ -542,7 +609,7 @@ export const DUTCH_WORLD_WORDS: WordItem[] = [
   { id: 'chocomel', nl: 'Warme Chocomel', en: 'Hot Cocoa', emoji: '☕', articleNl: 'de', category: 'autumn', color: '#92400E', soundCue: 'Lekker warm!' },
   { id: 'dennenappel', nl: 'Dennenappel', en: 'Pinecone', emoji: '🌲', articleNl: 'de', category: 'autumn', color: '#15803D', soundCue: 'Krak!' },
 
-  // Animals (Dieren)
+  // 🐶 Animals (Dieren)
   { id: 'kat', nl: 'Kat', en: 'Cat', emoji: '🐱', articleNl: 'de', category: 'animals', color: '#F97316', soundCue: 'Miauw!' },
   { id: 'hond', nl: 'Hond', en: 'Dog', emoji: '🐶', articleNl: 'de', category: 'animals', color: '#EC4899', soundCue: 'Woef woef!' },
   { id: 'paard', nl: 'Paard', en: 'Horse', emoji: '🐴', articleNl: 'het', category: 'animals', color: '#8B5CF6', soundCue: 'Hinnik!' },
@@ -552,7 +619,7 @@ export const DUTCH_WORLD_WORDS: WordItem[] = [
   { id: 'varken', nl: 'Varken', en: 'Pig', emoji: '🐷', articleNl: 'het', category: 'animals', color: '#F43F5E', soundCue: 'Knor knor!' },
   { id: 'beer', nl: 'Beer', en: 'Bear', emoji: '🐻', articleNl: 'de', category: 'animals', color: '#3B82F6', soundCue: 'Grauw!' },
 
-  // Vehicles & Dutch Culture (Vervoer & Holland)
+  // 🚲 Vehicles & Dutch Culture (Vervoer & Holland)
   { id: 'fiets', nl: 'Fiets', en: 'Bicycle', emoji: '🚲', articleNl: 'de', category: 'vehicles', color: '#22C55E', soundCue: 'Tring tring!' },
   { id: 'molen', nl: 'Windmolen', en: 'Windmill', emoji: '🪵', articleNl: 'de', category: 'vehicles', color: '#F59E0B', soundCue: 'Whoosh!' },
   { id: 'trein', nl: 'Trein', en: 'Train', emoji: '🚂', articleNl: 'de', category: 'vehicles', color: '#10B981', soundCue: 'Tsjoek tsjoek!' },
@@ -560,7 +627,7 @@ export const DUTCH_WORLD_WORDS: WordItem[] = [
   { id: 'auto', nl: 'Auto', en: 'Car', emoji: '🚗', articleNl: 'de', category: 'vehicles', color: '#EF4444', soundCue: 'Vroem vroem!' },
   { id: 'vliegtuig', nl: 'Vliegtuig', en: 'Airplane', emoji: '✈️', articleNl: 'het', category: 'vehicles', color: '#6366F1', soundCue: 'Swoosh!' },
 
-  // Food & Fruit (Eten & Fruit)
+  // 🧀 Food & Fruit (Eten & Fruit)
   { id: 'appel', nl: 'Appel', en: 'Apple', emoji: '🍎', articleNl: 'de', category: 'food', color: '#EF4444', soundCue: 'Mmmm!' },
   { id: 'kaas', nl: 'Kaas', en: 'Cheese', emoji: '🧀', articleNl: 'de', category: 'food', color: '#FACC15', soundCue: 'Lekker!' },
   { id: 'banaan', nl: 'Banaan', en: 'Banana', emoji: '🍌', articleNl: 'de', category: 'food', color: '#EAB308', soundCue: 'Zoet!' },
@@ -568,7 +635,7 @@ export const DUTCH_WORLD_WORDS: WordItem[] = [
   { id: 'brood', nl: 'Brood', en: 'Bread', emoji: '🍞', articleNl: 'het', category: 'food', color: '#D97706', soundCue: 'Kraak!' },
   { id: 'aardbei', nl: 'Aardbei', en: 'Strawberry', emoji: '🍓', articleNl: 'de', category: 'food', color: '#F43F5E', soundCue: 'Mmm, rood fruit!' },
 
-  // Nature & Dutch World (Natuur & Wereld)
+  // 🌷 Nature & Dutch World (Natuur & Wereld)
   { id: 'tulp', nl: 'Tulp', en: 'Tulip', emoji: '🌷', articleNl: 'de', category: 'nature', color: '#EC4899', soundCue: 'Mooie bloem!' },
   { id: 'zon', nl: 'Zon', en: 'Sun', emoji: '☀️', articleNl: 'de', category: 'nature', color: '#F59E0B', soundCue: 'Warm!' },
   { id: 'regenboog', nl: 'Regenboog', en: 'Rainbow', emoji: '🌈', articleNl: 'de', category: 'nature', color: '#8B5CF6', soundCue: 'Alle kleuren!' },
@@ -612,4 +679,34 @@ export const ABC_SONG_LYRICS_NL = [
   { chunk: 'W - X - Y en Z!', notes: [392.0, 349.23, 329.63, 261.63] },
   { chunk: 'Dat was het alfabet!', notes: [392.0, 349.23, 329.63, 293.66, 261.63] },
   { chunk: 'Zing het nog een keer met pret!', notes: [261.63, 392.0, 349.23, 329.63, 261.63] },
+];
+
+// Sinterklaas Kapoentje Lied
+export const SINTERKLAAS_SONG_LYRICS_NL = [
+  { chunk: 'Sinterklaas kapoentje,', notes: [261.63, 293.66, 329.63, 349.23] },
+  { chunk: 'Gooi wat in mijn schoentje,', notes: [392.0, 392.0, 349.23, 329.63] },
+  { chunk: 'Gooi wat in mijn laarsje,', notes: [349.23, 349.23, 329.63, 293.66] },
+  { chunk: 'Dank u Sinterklaasje!', notes: [329.63, 293.66, 261.63, 261.63] },
+];
+
+export const SINTERKLAAS_SONG_LYRICS_EN = [
+  { chunk: 'Saint Nicholas so dear,', notes: [261.63, 293.66, 329.63, 349.23] },
+  { chunk: 'Bring nice presents here,', notes: [392.0, 392.0, 349.23, 329.63] },
+  { chunk: 'Treats inside my shoe,', notes: [349.23, 349.23, 329.63, 293.66] },
+  { chunk: 'Thank you Saint Nick to you!', notes: [329.63, 293.66, 261.63, 261.63] },
+];
+
+// Jingle Bells / Kling Klokje Kerstlied
+export const CHRISTMAS_SONG_LYRICS_NL = [
+  { chunk: 'Kling klokje klingelingeling,', notes: [329.63, 329.63, 329.63, 329.63] },
+  { chunk: 'Kling klokje kling!', notes: [329.63, 392.0, 261.63, 293.66] },
+  { chunk: 'Kerstmis is gekomen,', notes: [349.23, 349.23, 349.23, 349.23] },
+  { chunk: 'Lichtjes in de bomen!', notes: [329.63, 329.63, 392.0, 392.0] },
+];
+
+export const CHRISTMAS_SONG_LYRICS_EN = [
+  { chunk: 'Jingle bells, jingle bells,', notes: [329.63, 329.63, 329.63, 329.63] },
+  { chunk: 'Jingle all the way!', notes: [329.63, 392.0, 261.63, 293.66] },
+  { chunk: 'Oh what fun it is to ride,', notes: [349.23, 349.23, 349.23, 349.23] },
+  { chunk: 'In a one horse open sleigh!', notes: [329.63, 329.63, 392.0, 392.0] },
 ];

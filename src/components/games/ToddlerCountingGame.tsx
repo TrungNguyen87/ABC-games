@@ -10,7 +10,7 @@ interface ToddlerCountingGameProps {
   language: Language;
 }
 
-type CountTheme = 'halloween' | 'autumn' | 'fruits' | 'animals' | 'toys';
+type CountTheme = 'sinterklaas' | 'christmas' | 'halloween' | 'autumn' | 'fruits' | 'animals' | 'toys';
 
 interface CountItemDef {
   emoji: string;
@@ -20,6 +20,22 @@ interface CountItemDef {
 }
 
 const THEME_ITEMS: Record<CountTheme, CountItemDef[]> = {
+  sinterklaas: [
+    { emoji: '🍪', nameNl: 'pepernoten', nameEn: 'spiced cookies' },
+    { emoji: '🎁', nameNl: 'cadeautjes', nameEn: 'presents' },
+    { emoji: '👞', nameNl: 'schoentjes', nameEn: 'shoes' },
+    { emoji: '🐴', nameNl: 'paardjes', nameEn: 'horses' },
+    { emoji: '🥕', nameNl: 'wortels', nameEn: 'carrots' },
+    { emoji: '🍫', nameNl: 'chocoladeletters', nameEn: 'chocolate letters' },
+  ],
+  christmas: [
+    { emoji: '🎄', nameNl: 'kerstboompjes', nameEn: 'Christmas trees' },
+    { emoji: '⭐', nameNl: 'kerststerren', nameEn: 'golden stars' },
+    { emoji: '🔔', nameNl: 'kerstklokjes', nameEn: 'jingle bells' },
+    { emoji: '⛄', nameNl: 'sneeuwpopjes', nameEn: 'snowmen' },
+    { emoji: '🔮', nameNl: 'kerstballen', nameEn: 'baubles' },
+    { emoji: '🦯', nameNl: 'zuurstokjes', nameEn: 'candy canes' },
+  ],
   halloween: [
     { emoji: '🎃', nameNl: 'pompoenen', nameEn: 'pumpkins' },
     { emoji: '👻', nameNl: 'spookjes', nameEn: 'ghosts' },
@@ -87,10 +103,10 @@ export default function ToddlerCountingGame({
   onEarnStar,
   language,
 }: ToddlerCountingGameProps) {
-  const [theme, setTheme] = useState<CountTheme>('halloween');
+  const [theme, setTheme] = useState<CountTheme>('sinterklaas');
   const [maxCountRange, setMaxCountRange] = useState<5 | 10>(5); // 1-5 for 3yo, 1-10 for 4yo
   const [targetCount, setTargetCount] = useState<number>(3);
-  const [itemDef, setItemDef] = useState<CountItemDef>(THEME_ITEMS.halloween[0]);
+  const [itemDef, setItemDef] = useState<CountItemDef>(THEME_ITEMS.sinterklaas[0]);
   const [countedIndices, setCountedIndices] = useState<number[]>([]);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [celebrationMsg, setCelebrationMsg] = useState<string>('');
@@ -250,7 +266,19 @@ export default function ToddlerCountingGame({
     >
       {/* Background Ambience */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-25">
-        {theme === 'halloween' ? (
+        {theme === 'sinterklaas' ? (
+          <>
+            <div className="absolute top-4 left-6 text-3xl animate-bounce">👑</div>
+            <div className="absolute top-12 right-10 text-3xl animate-pulse">🎁</div>
+            <div className="absolute bottom-8 left-12 text-3xl animate-kid-float">🐴</div>
+          </>
+        ) : theme === 'christmas' ? (
+          <>
+            <div className="absolute top-4 left-6 text-3xl animate-bounce">🎄</div>
+            <div className="absolute top-12 right-10 text-3xl animate-pulse">⭐</div>
+            <div className="absolute bottom-8 left-12 text-3xl animate-kid-float">⛄</div>
+          </>
+        ) : theme === 'halloween' ? (
           <>
             <div className="absolute top-4 left-6 text-3xl animate-bounce">🦇</div>
             <div className="absolute top-12 right-10 text-3xl animate-pulse">🎃</div>
@@ -276,6 +304,8 @@ export default function ToddlerCountingGame({
         {/* Themes */}
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 max-w-full">
           {[
+            { id: 'sinterklaas' as const, labelNl: '👑 Sinterklaas', labelEn: '👑 Sint' },
+            { id: 'christmas' as const, labelNl: '🎄 Kerstmis', labelEn: '🎄 Xmas' },
             { id: 'halloween' as const, labelNl: '🎃 Halloween', labelEn: '🎃 Spooky' },
             { id: 'autumn' as const, labelNl: '🍂 Herfst', labelEn: '🍂 Autumn' },
             { id: 'fruits' as const, labelNl: '🍎 Eten', labelEn: '🍎 Fruits' },

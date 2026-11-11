@@ -59,6 +59,7 @@ export default function LetterAvatar({
 
   const currentWord = language === 'nl' ? letterInfo.wordNl || letterInfo.word : letterInfo.word;
   const currentPhonics = language === 'nl' ? letterInfo.phonicsNl || letterInfo.phonics : letterInfo.phonics;
+  const currentEmoji = language === 'nl' ? letterInfo.emojiNl || letterInfo.emoji : letterInfo.emoji;
 
   const handleClick = (e: React.MouseEvent) => {
     if (onClick) {
@@ -201,7 +202,7 @@ export default function LetterAvatar({
       {showWord && (
         <div className="mt-3 text-center">
           <div className="text-xl sm:text-2xl font-bold text-white drop-shadow-md">
-            {currentWord} {letterInfo.emoji}
+            {currentWord} {currentEmoji}
           </div>
           <div className="text-sm text-white/90 font-medium">
             /{currentPhonics}/

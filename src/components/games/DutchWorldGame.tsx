@@ -12,12 +12,12 @@ interface DutchWorldGameProps {
 }
 
 export default function DutchWorldGame({ onEarnStar, language }: DutchWorldGameProps) {
-  const [selectedCategory, setSelectedCategory] = useState<
-    'autumn' | 'animals' | 'vehicles' | 'food' | 'nature'
-  >('autumn');
+  type DutchCategory = 'sinterklaas' | 'christmas' | 'autumn' | 'animals' | 'vehicles' | 'food' | 'nature';
+
+  const [selectedCategory, setSelectedCategory] = useState<DutchCategory>('sinterklaas');
   const [mode, setMode] = useState<'explore' | 'quiz'>('explore');
   const [targetWord, setTargetWord] = useState<WordItem>(
-    DUTCH_WORLD_WORDS.find((w) => w.category === 'autumn') || DUTCH_WORLD_WORDS[0]
+    DUTCH_WORLD_WORDS.find((w) => w.category === 'sinterklaas') || DUTCH_WORLD_WORDS[0]
   );
   const [activeWordId, setActiveWordId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string>('');
@@ -106,12 +106,14 @@ export default function DutchWorldGame({ onEarnStar, language }: DutchWorldGameP
   };
 
   const categories = [
-    { id: 'autumn', labelNl: '🍂 Herfst & Bos', labelEn: 'Autumn & Woods' },
-    { id: 'animals', labelNl: '🐶 Dieren', labelEn: 'Animals' },
-    { id: 'vehicles', labelNl: '🚲 Holland & Vervoer', labelEn: 'Bikes & City' },
-    { id: 'food', labelNl: '🧀 Eten & Kaas', labelEn: 'Food & Fruit' },
-    { id: 'nature', labelNl: '🌷 Natuur & Bloemen', labelEn: 'Nature & Tulips' },
-  ] as const;
+    { id: 'sinterklaas' as const, labelNl: '👑 Sinterklaas Feest', labelEn: 'Sinterklaas' },
+    { id: 'christmas' as const, labelNl: '🎄 Kerstmis Wonder', labelEn: 'Christmas' },
+    { id: 'autumn' as const, labelNl: '🍂 Herfst & Bos', labelEn: 'Autumn & Woods' },
+    { id: 'animals' as const, labelNl: '🐶 Dieren', labelEn: 'Animals' },
+    { id: 'vehicles' as const, labelNl: '🚲 Holland & Vervoer', labelEn: 'Bikes & City' },
+    { id: 'food' as const, labelNl: '🧀 Eten & Lekkers', labelEn: 'Food & Fruit' },
+    { id: 'nature' as const, labelNl: '🌷 Natuur & Bloemen', labelEn: 'Nature & Tulips' },
+  ];
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-between py-2 px-3 sm:px-6 max-w-5xl mx-auto select-none">

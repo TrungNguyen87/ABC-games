@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ALPHABET_DATA } from '../../data/alphabetData';
+import { ALPHABET_DATA, getLetterWord, getLetterEmoji } from '../../data/alphabetData';
 import { LetterInfo, Language } from '../../types/game';
 import LetterAvatar from '../LetterAvatar';
 import { sounds } from '../../utils/soundEffects';
@@ -191,10 +191,12 @@ export default function LetterFriendsGame({
           </span>
           <span className="text-xl sm:text-2xl text-white font-black drop-shadow">
             {language === 'nl'
-              ? `van ${targetLetter.wordNl || targetLetter.word}`
-              : `for ${targetLetter.word}`}
+              ? `van ${getLetterWord(targetLetter, language)}`
+              : `for ${getLetterWord(targetLetter, language)}`}
           </span>
-          <span className="text-2xl sm:text-3xl drop-shadow animate-kid-bounce">{targetLetter.emoji}</span>
+          <span className="text-2xl sm:text-3xl drop-shadow animate-kid-bounce">
+            {getLetterEmoji(targetLetter, language)}
+          </span>
         </div>
       </div>
 

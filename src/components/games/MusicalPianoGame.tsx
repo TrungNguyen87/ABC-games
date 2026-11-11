@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PIANO_KEYS, ABC_SONG_LYRICS_EN, ABC_SONG_LYRICS_NL } from '../../data/alphabetData';
+import {
+  PIANO_KEYS,
+  ABC_SONG_LYRICS_EN,
+  ABC_SONG_LYRICS_NL,
+  SINTERKLAAS_SONG_LYRICS_EN,
+  SINTERKLAAS_SONG_LYRICS_NL,
+  CHRISTMAS_SONG_LYRICS_EN,
+  CHRISTMAS_SONG_LYRICS_NL,
+} from '../../data/alphabetData';
 import { Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
@@ -11,14 +19,27 @@ interface MusicalPianoGameProps {
   language: Language;
 }
 
+type SongChoice = 'sinterklaas' | 'christmas' | 'abc';
+
 export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoGameProps) {
+  const [selectedSong, setSelectedSong] = useState<SongChoice>('sinterklaas');
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [isPlayingSong, setIsPlayingSong] = useState(false);
   const [singAlongIdx, setSingAlongIdx] = useState(0);
   const [instrument, setInstrument] = useState<'piano' | 'xylophone' | 'animal'>('xylophone');
   const songTimerRef = useRef<any>(null);
 
-  const lyrics = language === 'nl' ? ABC_SONG_LYRICS_NL : ABC_SONG_LYRICS_EN;
+  const getActiveLyrics = () => {
+    if (selectedSong === 'sinterklaas') {
+      return language === 'nl' ? SINTERKLAAS_SONG_LYRICS_NL : SINTERKLAAS_SONG_LYRICS_EN;
+    }
+    if (selectedSong === 'christmas') {
+      return language === 'nl' ? CHRISTMAS_SONG_LYRICS_NL : CHRISTMAS_SONG_LYRICS_EN;
+    }
+    return language === 'nl' ? ABC_SONG_LYRICS_NL : ABC_SONG_LYRICS_EN;
+  };
+
+  const lyrics = getActiveLyrics();
 
   useEffect(() => {
     return () => {
@@ -53,11 +74,20 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
       setIsPlayingSong(true);
       setSingAlongIdx(0);
 
-      if (language === 'nl') {
-        sounds.speak('Zing het ABC liedje met mij!', 'nl');
-      } else {
-        sounds.speak('Sing the ABC song with me!', 'en');
-      }
+      const songIntro =
+        selectedSong === 'sinterklaas'
+          ? language === 'nl'
+            ? 'Zing mee met Sinterklaas Kapoentje!'
+            : 'Sing the Saint Nicholas song!'
+          : selectedSong === 'christmas'
+          ? language === 'nl'
+            ? 'Zing mee met O Denneboom!'
+            : 'Sing the Christmas song!'
+          : language === 'nl'
+          ? 'Zing het ABC liedje met mij!'
+          : 'Sing the ABC song with me!';
+
+      sounds.speak(songIntro, language);
 
       let step = 0;
       songTimerRef.current = setInterval(() => {
@@ -65,7 +95,7 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
           clearInterval(songTimerRef.current);
           setIsPlayingSong(false);
           sounds.playKidsCheer();
-          fireConfettiBurst();
+          fireConfettiBurst(selectedSong === 'sinterklaas' ? 'stars' : selectedSong === 'christmas' ? 'winter' : 'rainbow');
           triggerKidCheer({
             message: language === 'nl' ? 'MOOI GEZONGEN!' : 'SUPER SINGER!',
             emoji: '🎶',
@@ -74,7 +104,7 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
           if (language === 'nl') {
             sounds.speak('Hoera! Wat mooi gezongen!', 'nl');
           } else {
-            sounds.speak('Hooray! You sang the ABC song!', 'en');
+            sounds.speak('Hooray! What a beautiful song!', 'en');
           }
           return;
         }
@@ -97,9 +127,37 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-between py-2 px-3 sm:px-6 max-w-4xl mx-auto select-none">
-      {/* Top Banner & Mode Toggle */}
+      {/* Top Banner, Song Choices & Mode Toggle */}
       <div className="w-full flex flex-col items-center mt-1">
-        <div className="flex items-center gap-3 mb-2">
+        {/* Song Choice Tabs */}
+        <div className="bg-black/35 backdrop-blur-md p-1 rounded-full flex gap-1 border border-white/30 mb-2">
+          {[
+            { id: 'sinterklaas' as const, labelNl: '👑 Sinterklaas Kapoentje', labelEn: '👑 Saint Nicholas Song' },
+            { id: 'christmas' as const, labelNl: '🎄 O Denneboom', labelEn: '🎄 Christmas Tree Song' },
+            { id: 'abc' as const, labelNl: '🔤 ABC Liedje', labelEn: '🔤 ABC Song' },
+          ].map((song) => (
+            <button
+              key={song.id}
+              onClick={() => {
+                if (isPlayingSong) {
+                  clearInterval(songTimerRef.current);
+                  setIsPlayingSong(false);
+                }
+                sounds.playPop();
+                setSelectedSong(song.id);
+              }}
+              className={`px-3 py-1 text-xs font-black rounded-full transition-all cursor-pointer ${
+                selectedSong === song.id
+                  ? 'bg-amber-400 text-amber-950 shadow-md scale-105'
+                  : 'text-white/80 hover:text-white'
+              }`}
+            >
+              {language === 'nl' ? song.labelNl : song.labelEn}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3 mb-2 flex-wrap justify-center">
           {/* Instrument Selector */}
           <div className="bg-white/30 backdrop-blur-md p-1 rounded-full flex gap-1 border border-white/50">
             <button
@@ -139,7 +197,7 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
                   : 'text-white hover:text-white/80'
               }`}
             >
-              🦁 {language === 'nl' ? 'Dierenpraat' : 'Animal Talk'}
+              🦁 {language === 'nl' ? 'Dieren' : 'Animals'}
             </button>
           </div>
 
@@ -160,7 +218,7 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
             ) : (
               <>
                 <Play className="w-4 h-4 fill-current" />
-                <span>{language === 'nl' ? 'Zing ABC Liedje! 🎶' : 'Sing ABC Song! 🎶'}</span>
+                <span>{language === 'nl' ? 'Zing mee! 🎶' : 'Sing along! 🎶'}</span>
               </>
             )}
           </button>
@@ -171,7 +229,7 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
           <div className="bg-white/40 backdrop-blur-md px-8 py-2.5 rounded-full border-2 border-white shadow-xl flex items-center gap-3 animate-kid-bounce">
             <span className="text-3xl animate-spin">⭐</span>
             <span className="text-2xl sm:text-3xl font-black text-white drop-shadow">
-              {lyrics[singAlongIdx]?.chunk || (language === 'nl' ? 'ABC Zingen!' : 'Singing ABCs!')}
+              {lyrics[singAlongIdx]?.chunk || '🎶'}
             </span>
             <span className="text-3xl">🎵</span>
           </div>
@@ -229,8 +287,8 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
       {/* Bottom prompt */}
       <div className="text-white font-extrabold text-sm sm:text-base drop-shadow mb-1">
         {language === 'nl'
-          ? 'Tik op de vrolijke toetsen en speel je eigen muziek! 🎵🎹'
-          : 'Tap the colorful bars to play your own ABC songs! 🎵🎹'}
+          ? 'Tik op de vrolijke toetsen en zing gezellig mee! 🎵🎹'
+          : 'Tap the colorful bars to play music and sing along! 🎵🎹'}
       </div>
     </div>
   );

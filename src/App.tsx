@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GameMode, LetterInfo, Language, VoiceStyle } from './types/game';
+import { GameMode, LetterInfo, Language, VoiceStyle, AppTheme } from './types/game';
 import { ALPHABET_DATA } from './data/alphabetData';
 import { sounds } from './utils/soundEffects';
 import ConfettiCanvas, { fireConfettiBurst } from './components/ConfettiCanvas';
@@ -32,6 +32,10 @@ export default function App() {
     const saved = localStorage.getItem('abc_kids_lang');
     return saved === 'en' ? 'en' : 'nl'; // Default to Dutch
   });
+  const [appTheme, setAppTheme] = useState<AppTheme>(() => {
+    const saved = localStorage.getItem('abc_kids_theme') as AppTheme;
+    return saved || 'sinterklaas';
+  });
   const [voiceStyle, setVoiceStyle] = useState<VoiceStyle>(() => sounds.getVoiceStyle());
   const [stars, setStars] = useState<number>(() => {
     const saved = localStorage.getItem('abc_kids_stars');
@@ -59,6 +63,26 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('abc_kids_lang', language);
   }, [language]);
+
+  useEffect(() => {
+    localStorage.setItem('abc_kids_theme', appTheme);
+  }, [appTheme]);
+
+  const handleCycleTheme = () => {
+    const themes: AppTheme[] = ['sinterklaas', 'christmas', 'halloween', 'autumn', 'classic'];
+    const nextIdx = (themes.indexOf(appTheme) + 1) % themes.length;
+    const nextTheme = themes[nextIdx];
+    setAppTheme(nextTheme);
+
+    const themeNames = {
+      sinterklaas: language === 'nl' ? 'Sinterklaas Thema!' : 'Sinterklaas Theme!',
+      christmas: language === 'nl' ? 'Kerstmis Thema!' : 'Christmas Theme!',
+      halloween: language === 'nl' ? 'Halloween Thema!' : 'Halloween Theme!',
+      autumn: language === 'nl' ? 'Herfst Thema!' : 'Autumn Theme!',
+      classic: language === 'nl' ? 'Regenboog Thema!' : 'Rainbow Theme!',
+    };
+    sounds.speak(themeNames[nextTheme], language);
+  };
 
   const handleEarnStar = () => {
     setStars((prev) => prev + 1);
@@ -148,25 +172,25 @@ export default function App() {
     },
     {
       id: 'lore-speller',
-      titleNl: '🎃 Halloween & Woordjes',
-      titleEn: '🎃 Halloween & Words',
-      subtitleNl: 'Spel spookjes, fruit, speelgoed & dieren!',
-      subtitleEn: 'Spell spooky words, fruits, toys & animals!',
-      icon: '👻',
-      badgeNl: '🎃 Randomizer!',
-      badgeEn: '🎃 Randomizer!',
-      bgGradient: 'from-purple-700 via-indigo-700 to-slate-900',
-      borderShadow: '#312e81',
+      titleNl: '👑 Sint, Kerst & Spellen',
+      titleEn: '👑 Sint, Xmas & Spell',
+      subtitleNl: 'Sleep letters! Spel Sint, Kerst, Halloween & diertjes!',
+      subtitleEn: 'Drag & drop letters! Spell Sint, Christmas & animals!',
+      icon: '👑',
+      badgeNl: '👑 Sint & Kerst!',
+      badgeEn: '👑 Holiday Themes!',
+      bgGradient: 'from-amber-600 via-red-600 to-purple-800',
+      borderShadow: '#78350f',
     },
     {
       id: 'toddler-counting',
       titleNl: '🔢 Peuter Telspelletje',
       titleEn: '🔢 Toddler Counting',
-      subtitleNl: 'Tel pompoenen, spookjes, appels & diertjes (1-10)!',
-      subtitleEn: 'Count pumpkins, ghosts, apples & animals (1-10)!',
+      subtitleNl: 'Tel pepernoten, cadeautjes, boompjes & spookjes (1-10)!',
+      subtitleEn: 'Count holiday cookies, presents, trees & ghosts (1-10)!',
       icon: '🔢',
-      badgeNl: '🔢 NIEUW!',
-      badgeEn: '🔢 NEW!',
+      badgeNl: '🍪 Sint & Kerst!',
+      badgeEn: '🍪 Holiday Themes!',
       bgGradient: 'from-emerald-500 via-teal-600 to-cyan-700',
       borderShadow: '#065f46',
     },
@@ -184,25 +208,25 @@ export default function App() {
     },
     {
       id: 'autumn-leaves',
-      titleNl: 'Herfstblaadjes Vangen',
-      titleEn: 'Autumn Leaf Catch',
-      subtitleNl: 'Vang vallende blaadjes, eikels en pompoenen!',
-      subtitleEn: 'Catch falling leaves, acorns and pumpkins!',
+      titleNl: 'Herfst & Feest Vangen',
+      titleEn: 'Holiday & Leaf Catch',
+      subtitleNl: 'Vang pepernoten, sneeuwvlokken of herfstblaadjes!',
+      subtitleEn: 'Catch spiced cookies, snowflakes or autumn leaves!',
       icon: '🍂',
-      badgeNl: '🍁 Herfstwereld',
-      badgeEn: '🍁 Autumn World',
+      badgeNl: '🍁 3 Thema\'s!',
+      badgeEn: '🍁 3 Themes!',
       bgGradient: 'from-amber-500 via-orange-500 to-amber-700',
       borderShadow: '#b45309',
     },
     {
       id: 'puddle-splash',
-      titleNl: 'Plassen Springen',
-      titleEn: 'Puddle Splash & Hop',
-      subtitleNl: 'Trek je laarzen aan en spring in de plassen!',
-      subtitleEn: 'Put on rainboots and jump into puddles!',
-      icon: '👢',
-      badgeNl: '💦 Spetter Pret!',
-      badgeEn: '💦 Splash Fun!',
+      titleNl: 'Plassen & Daken Springen',
+      titleEn: 'Puddle & Roof Hopping',
+      subtitleNl: 'Rij met Amerigo over de daken of spring in plassen!',
+      subtitleEn: 'Ride Amerigo across rooftops or splash in puddles!',
+      icon: '🐴',
+      badgeNl: '🐴 Amerigo & Sneeuw',
+      badgeEn: '🐴 Amerigo & Snow',
       bgGradient: 'from-cyan-400 via-sky-500 to-blue-600',
       borderShadow: '#0369a1',
     },
@@ -210,11 +234,11 @@ export default function App() {
       id: 'dutch-world',
       titleNl: 'Nederlandse Wereld',
       titleEn: 'Dutch World & Words',
-      subtitleNl: 'Herfst, dieren, fietsen & Hollandse woordjes!',
-      subtitleEn: 'Autumn, animals, bikes & Dutch vocab!',
-      icon: '🚲',
-      badgeNl: '🇳🇱 Ontdekken',
-      badgeEn: '🇳🇱 Learn Dutch',
+      subtitleNl: 'Sinterklaas, Kerstmis, herfst & Hollandse woordjes!',
+      subtitleEn: 'Sinterklaas, Christmas, autumn & Dutch vocab!',
+      icon: '🇳🇱',
+      badgeNl: '🇳🇱 Sint & Kerst',
+      badgeEn: '🇳🇱 Holiday Vocab',
       bgGradient: 'from-orange-500 via-amber-500 to-yellow-500',
       borderShadow: '#c2410c',
     },
@@ -232,13 +256,13 @@ export default function App() {
     },
     {
       id: 'balloon-pop',
-      titleNl: 'Ballonnen Ploppen',
-      titleEn: 'Balloon Pop ABC',
-      subtitleNl: 'Plop vliegende ballonnen en leer klanken!',
-      subtitleEn: 'Pop balloons & hear letter sounds!',
+      titleNl: 'Ballonnen & Plaatjes',
+      titleEn: 'Balloon Pop & Pictures',
+      subtitleNl: 'Plop ballonnen en zie het juiste plaatje & woord!',
+      subtitleEn: 'Pop balloons & see matched picture & word!',
       icon: '🎈',
-      badgeNl: 'Super Pret!',
-      badgeEn: 'Super Fun!',
+      badgeNl: '🎈 Met Plaatjes!',
+      badgeEn: '🎈 With Pictures!',
       bgGradient: 'from-sky-400 to-blue-600',
       borderShadow: '#1e40af',
     },
@@ -311,8 +335,199 @@ export default function App() {
       : currentGame.titleEn
     : undefined;
 
+  const themeDetails = (() => {
+    switch (appTheme) {
+      case 'sinterklaas':
+        return {
+          bgClass: 'bg-gradient-to-b from-red-700 via-amber-700 to-amber-900',
+          icon1: '👑',
+          icon2: '🎁',
+          title: language === 'nl' ? 'ABC Kids & Sinterklaas Feest' : 'ABC Kids & Sinterklaas Feast',
+          subtitle: language === 'nl'
+            ? 'Pepernoten, het paard van Sinterklaas, pakjes & Nederlandse letterpret!'
+            : 'Sinterklaas treats, Amerigo horse, presents & Dutch alphabet fun!',
+          ctaPrimaryNl: '👑 SINT WOORDJES SPELLEN! 🎁',
+          ctaPrimaryEn: '👑 SINT WORD SPELLER! 🎁',
+          ctaPrimarySound: () => {
+            sounds.playChime();
+            fireConfettiBurst('stars');
+            setCurrentMode('lore-speller');
+            sounds.speak(
+              language === 'nl'
+                ? 'Welkom bij Sinterklaas Woordjes Spellen! Sleep de letters naar het woord!'
+                : 'Welcome to Sinterklaas Word Speller! Drag the letters into the word!',
+              language
+            );
+          },
+          ctaSecondaryNl: '🍪 PEPERNOTEN TELLEN! 🔢',
+          ctaSecondaryEn: '🍪 COUNT COOKIES & GIFTS! 🔢',
+          ctaSecondarySound: () => {
+            sounds.playPop();
+            fireConfettiBurst('stars');
+            setCurrentMode('toddler-counting');
+            sounds.speak(
+              language === 'nl'
+                ? 'Tel de pepernoten en cadeautjes van Sinterklaas!'
+                : 'Count the cookies and holiday presents!',
+              language
+            );
+          },
+          textShadow: '0 5px 0 #78350f',
+        };
+      case 'christmas':
+        return {
+          bgClass: 'bg-gradient-to-b from-emerald-800 via-teal-900 to-red-950',
+          icon1: '🎄',
+          icon2: '⭐',
+          title: language === 'nl' ? 'ABC Kids & Kerstmis Wonder' : 'ABC Kids & Christmas Wonder',
+          subtitle: language === 'nl'
+            ? 'Kerstbomen, sneeuwpoppen, kerststerren & magische feestdagen woordjes!'
+            : 'Christmas trees, snowmen, holiday bells & magical words!',
+          ctaPrimaryNl: '🎄 KERSTMIS WOORDJES! ⭐',
+          ctaPrimaryEn: '🎄 CHRISTMAS SPELLER! ⭐',
+          ctaPrimarySound: () => {
+            sounds.playChime();
+            fireConfettiBurst('winter');
+            setCurrentMode('lore-speller');
+            sounds.speak(
+              language === 'nl'
+                ? 'Vrolijk Kerstfeest! Laten we magische kerstwoordjes spellen!'
+                : 'Merry Christmas! Let us spell holiday words together!',
+              language
+            );
+          },
+          ctaSecondaryNl: '🔔 KERSTBOOM TELLEN! 🔢',
+          ctaSecondaryEn: '🔔 COUNT XMAS TREES! 🔢',
+          ctaSecondarySound: () => {
+            sounds.playPop();
+            fireConfettiBurst('winter');
+            setCurrentMode('toddler-counting');
+            sounds.speak(
+              language === 'nl'
+                ? 'Tel de kerstboompjes en gouden sterren!'
+                : 'Count the Christmas trees and golden stars!',
+              language
+            );
+          },
+          textShadow: '0 5px 0 #064e3b',
+        };
+      case 'halloween':
+        return {
+          bgClass: 'bg-gradient-to-b from-purple-950 via-slate-900 to-orange-950',
+          icon1: '🎃',
+          icon2: '👻',
+          title: language === 'nl' ? 'ABC Kids & Halloween Pret' : 'ABC Kids & Spooky Halloween',
+          subtitle: language === 'nl'
+            ? 'Vrolijke spookjes, pompoenen en grappige woordjes voor peuters!'
+            : 'Friendly ghosts, pumpkins & funny toddler word puzzles!',
+          ctaPrimaryNl: '👻 HALLOWEEN SPELLEN! 🎃',
+          ctaPrimaryEn: '👻 HALLOWEEN SPELLER! 🎃',
+          ctaPrimarySound: () => {
+            sounds.playGhost();
+            fireConfettiBurst('halloween');
+            setCurrentMode('lore-speller');
+            sounds.speak(
+              language === 'nl'
+                ? 'Boe! Welkom bij Halloween Woordjes Spellen!'
+                : 'Boo! Welcome to Halloween Word Speller!',
+              language
+            );
+          },
+          ctaSecondaryNl: '🎃 TEL DE SPOOKJES! 🍎',
+          ctaSecondaryEn: '🎃 COUNT SPOOKY GHOSTS! 🍎',
+          ctaSecondarySound: () => {
+            sounds.playPop();
+            fireConfettiBurst('halloween');
+            setCurrentMode('toddler-counting');
+            sounds.speak(
+              language === 'nl'
+                ? 'Tel de vrolijke spookjes en pompoenen!'
+                : 'Count the friendly ghosts and pumpkins!',
+              language
+            );
+          },
+          textShadow: '0 5px 0 #312e81',
+        };
+      case 'autumn':
+        return {
+          bgClass: 'bg-gradient-to-b from-amber-600 via-orange-600 to-amber-900',
+          icon1: '🍂',
+          icon2: '🍁',
+          title: language === 'nl' ? 'ABC Kids & Herfstwereld' : 'ABC Kids & Autumn World',
+          subtitle: language === 'nl'
+            ? 'Vrolijke herfstspelletjes en Nederlandse woordjes met zachte lieve juf!'
+            : 'Fun autumn games & Dutch learning for toddlers with soft gentle voice!',
+          ctaPrimaryNl: '🍁 HERFSTBLAADJES VANGEN! 🍂',
+          ctaPrimaryEn: '🍁 AUTUMN LEAF CATCH! 🍂',
+          ctaPrimarySound: () => {
+            sounds.playRustle();
+            fireConfettiBurst('autumn');
+            setCurrentMode('autumn-leaves');
+            sounds.speak(
+              language === 'nl'
+                ? 'Welkom in het herfstbos! Vang de vallende blaadjes!'
+                : 'Welcome to the autumn woods! Catch the falling leaves!',
+              language
+            );
+          },
+          ctaSecondaryNl: '👢 PLASSEN SPRINGEN! 💦',
+          ctaSecondaryEn: '👢 PUDDLE SPLASH! 💦',
+          ctaSecondarySound: () => {
+            sounds.playSplash();
+            fireConfettiBurst('autumn');
+            setCurrentMode('puddle-splash');
+            sounds.speak(
+              language === 'nl'
+                ? 'Plons! Trek je laarzen aan en spring in de plassen!'
+                : 'Splash! Put on boots and jump in puddles!',
+              language
+            );
+          },
+          textShadow: '0 5px 0 #b45309',
+        };
+      case 'classic':
+      default:
+        return {
+          bgClass: 'bg-gradient-to-b from-sky-400 via-sky-500 to-blue-600',
+          icon1: '🌈',
+          icon2: '⭐',
+          title: language === 'nl' ? 'ABC Kids & Regenboog Wereld' : 'ABC Kids & Rainbow World',
+          subtitle: language === 'nl'
+            ? 'Vrolijke leerzame spelletjes en Nederlandse woordjes voor peuters!'
+            : 'Cheerful educational games & Dutch learning for happy toddlers!',
+          ctaPrimaryNl: '🎈 BALLONNEN PLOPPEN! 🌟',
+          ctaPrimaryEn: '🎈 BALLOON POP! 🌟',
+          ctaPrimarySound: () => {
+            sounds.playPop();
+            fireConfettiBurst('rainbow');
+            setCurrentMode('balloon-pop');
+            sounds.speak(
+              language === 'nl'
+                ? 'Plop vliegende ballonnen en ontdek letters en plaatjes!'
+                : 'Pop balloons and discover letters and pictures!',
+              language
+            );
+          },
+          ctaSecondaryNl: '🎨 KLEUR GRADIËNT! 🌈',
+          ctaSecondaryEn: '🎨 COLOR GRADING! 🌈',
+          ctaSecondarySound: () => {
+            sounds.playColorChime(0.6);
+            fireConfettiBurst('rainbow');
+            setCurrentMode('color-grading');
+            sounds.speak(
+              language === 'nl'
+                ? 'Welkom bij Kleur en Gradiënt Spelletjes!'
+                : 'Welcome to Color Grading and Gradient Games!',
+              language
+            );
+          },
+          textShadow: '0 5px 0 #0284c7',
+        };
+    }
+  })();
+
   return (
-    <div className="relative w-screen h-screen overflow-hidden flex flex-col bg-sky-400 select-none">
+    <div className={`relative w-screen h-screen overflow-hidden flex flex-col ${themeDetails.bgClass} select-none transition-colors duration-500`}>
       {/* Background playful dot pattern */}
       <div
         className="absolute inset-0 pointer-events-none opacity-25"
@@ -368,6 +583,8 @@ export default function App() {
         language={language}
         onToggleLanguage={handleToggleLanguage}
         title={currentTitle}
+        appTheme={appTheme}
+        onCycleTheme={handleCycleTheme}
       />
 
       {/* Main Play Area */}
@@ -377,29 +594,49 @@ export default function App() {
             {/* Title Lockup */}
             <div className="flex flex-col items-center text-center mt-0.5">
               <div className="flex items-center gap-2 sm:gap-3">
-                <span className="text-3xl sm:text-4xl animate-kid-bounce">🍂</span>
+                <span className="text-3xl sm:text-4xl animate-kid-bounce">{themeDetails.icon1}</span>
                 <h1
                   className="text-3xl sm:text-5xl md:text-6xl font-black text-white drop-shadow-lg tracking-wide"
-                  style={{ textShadow: '0 5px 0 #0284c7' }}
+                  style={{ textShadow: themeDetails.textShadow }}
                 >
-                  {language === 'nl' ? 'ABC Kids & Herfstwereld' : 'ABC Kids & Autumn World'}
+                  {themeDetails.title}
                 </h1>
                 <span
                   className="text-3xl sm:text-4xl animate-kid-bounce"
                   style={{ animationDelay: '0.3s' }}
                 >
-                  🍁
+                  {themeDetails.icon2}
                 </span>
               </div>
               <p className="text-white/95 text-xs sm:text-base font-bold drop-shadow mt-0.5">
-                {language === 'nl'
-                  ? 'Vrolijke herfstspelletjes en Nederlandse woordjes met zachte lieve juf!'
-                  : 'Fun autumn games & Dutch learning for toddlers with soft gentle voice!'}
+                {themeDetails.subtitle}
               </p>
             </div>
 
             {/* Quick Hero Banner / Play CTA buttons */}
             <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 my-1.5">
+              {/* Primary Theme Action CTA */}
+              <button
+                onClick={themeDetails.ctaPrimarySound}
+                className="group px-5 sm:px-7 py-2.5 sm:py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-400 hover:to-red-500 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#78350f] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer animate-pulse-glow"
+              >
+                <span className="text-2xl animate-kid-bounce">{themeDetails.icon1}</span>
+                <span>
+                  {language === 'nl' ? themeDetails.ctaPrimaryNl : themeDetails.ctaPrimaryEn}
+                </span>
+              </button>
+
+              {/* Secondary Theme Action CTA */}
+              <button
+                onClick={themeDetails.ctaSecondarySound}
+                className="group px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#065f46] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer animate-kid-wiggle"
+              >
+                <span className="text-2xl animate-kid-bounce">{themeDetails.icon2}</span>
+                <span>
+                  {language === 'nl' ? themeDetails.ctaSecondaryNl : themeDetails.ctaSecondaryEn}
+                </span>
+              </button>
+
               {/* Alphabet Puzzle CTA */}
               <button
                 onClick={() => {
@@ -412,51 +649,31 @@ export default function App() {
                     sounds.speak('Welcome to Alphabet Puzzles! Let us solve puzzles!', 'en');
                   }
                 }}
-                className="group px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#881337] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer animate-pulse-glow"
+                className="group px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-amber-500 via-rose-500 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#881337] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
               >
                 <span className="text-2xl animate-spin">🧩</span>
                 <span>
-                  {language === 'nl' ? 'LETTER PUZZELS! 🧩' : 'ALPHABET PUZZLES! 🧩'}
+                  {language === 'nl' ? 'LETTER PUZZELS! 🧩' : 'LETTER PUZZLES! 🧩'}
                 </span>
               </button>
 
-              {/* Halloween Pop CTA */}
+              {/* Balloon Pop with Pictures CTA */}
               <button
                 onClick={() => {
-                  sounds.playGhost();
-                  fireConfettiBurst('halloween');
-                  setCurrentMode('halloween-pop');
+                  sounds.playPop();
+                  fireConfettiBurst('rainbow');
+                  setCurrentMode('balloon-pop');
                   if (language === 'nl') {
-                    sounds.speak('Welkom bij Halloween Spookjes Ploppen! Plop ze allemaal!', 'nl');
+                    sounds.speak('Plop de ballonnen en ontdek letters en plaatjes!', 'nl');
                   } else {
-                    sounds.speak('Welcome to Halloween Spooky Pop! Pop them all!', 'en');
+                    sounds.speak('Pop balloons to discover letters and pictures!', 'en');
                   }
                 }}
-                className="group px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-orange-600 via-purple-700 to-slate-900 hover:from-orange-500 hover:to-purple-600 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#581c87] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer animate-pulse-glow"
+                className="group px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#1e40af] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
               >
-                <span className="text-2xl animate-kid-bounce">🎃</span>
+                <span className="text-2xl animate-kid-bounce">🎈</span>
                 <span>
-                  {language === 'nl' ? 'SPOOKJES PLOPPEN! 🎃' : 'SPOOKY POP! 🎃'}
-                </span>
-              </button>
-
-              {/* Halloween Lore Speller CTA */}
-              <button
-                onClick={() => {
-                  sounds.playGhost();
-                  fireConfettiBurst('halloween');
-                  setCurrentMode('lore-speller');
-                  if (language === 'nl') {
-                    sounds.speak('Boe! Welkom bij Halloween Woordjes Spellen!', 'nl');
-                  } else {
-                    sounds.speak('Boo! Welcome to Halloween Word Speller!', 'en');
-                  }
-                }}
-                className="group px-5 sm:px-7 py-2.5 sm:py-3 bg-gradient-to-r from-purple-700 via-indigo-600 to-purple-800 hover:from-purple-600 hover:to-indigo-500 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#312e81] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer animate-pulse-glow"
-              >
-                <span className="text-2xl animate-kid-bounce">👻</span>
-                <span>
-                  {language === 'nl' ? 'HALLOWEEN SPELLEN! 🎃' : 'HALLOWEEN SPELLER! 🎃'}
+                  {language === 'nl' ? 'BALLONNEN & PLAATJES! 🎈' : 'BALLOON POP & WORDS! 🎈'}
                 </span>
               </button>
 
@@ -477,66 +694,6 @@ export default function App() {
                 <span className="text-2xl animate-spin">🎨</span>
                 <span>
                   {language === 'nl' ? 'KLEUR GRADIËNT! 🌈' : 'COLOR GRADING! 🌈'}
-                </span>
-              </button>
-
-              {/* Toddler Counting CTA */}
-              <button
-                onClick={() => {
-                  sounds.playPop();
-                  fireConfettiBurst('rainbow');
-                  setCurrentMode('toddler-counting');
-                  if (language === 'nl') {
-                    sounds.speak('Welkom bij het telspelletje! Laten we tellen!', 'nl');
-                  } else {
-                    sounds.speak('Welcome to the counting game! Let us count together!', 'en');
-                  }
-                }}
-                className="group px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#065f46] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer animate-kid-wiggle"
-              >
-                <span className="text-2xl animate-kid-bounce">🔢</span>
-                <span>
-                  {language === 'nl' ? 'TEL DE SPOOKJES & APPELS! 🍎' : 'COUNTING FUN! 🍎'}
-                </span>
-              </button>
-
-              {/* Autumn Leaf Game CTA */}
-              <button
-                onClick={() => {
-                  sounds.playRustle();
-                  fireConfettiBurst('autumn');
-                  setCurrentMode('autumn-leaves');
-                  if (language === 'nl') {
-                    sounds.speak('Welkom in het herfstbos! Vang de vallende blaadjes!', 'nl');
-                  } else {
-                    sounds.speak('Welcome to the autumn woods! Catch the falling leaves!', 'en');
-                  }
-                }}
-                className="group px-5 sm:px-6 py-2.5 sm:py-3 bg-amber-500 hover:bg-amber-400 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#b45309] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <span className="text-2xl animate-spin">🍁</span>
-                <span>
-                  {language === 'nl' ? 'HERFSTBLAADJES!' : 'AUTUMN LEAVES!'}
-                </span>
-              </button>
-
-              {/* Rain Puddle Splash CTA */}
-              <button
-                onClick={() => {
-                  sounds.playSplash();
-                  fireConfettiBurst('autumn');
-                  setCurrentMode('puddle-splash');
-                  if (language === 'nl') {
-                    sounds.speak('Plons! Trek je laarzen aan en spring in de plassen!', 'nl');
-                  } else {
-                    sounds.speak('Splash! Put on boots and jump in puddles!', 'en');
-                  }
-                }}
-                className="group px-5 sm:px-7 py-2.5 sm:py-3 bg-cyan-500 hover:bg-cyan-400 text-white rounded-full font-black text-lg sm:text-xl shadow-[0_6px_0_#0369a1] active:translate-y-1.5 active:shadow-none transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <span className="text-2xl">👢</span>
-                <span>
-                  {language === 'nl' ? 'PLASSEN SPRINGEN! 💦' : 'PUDDLE SPLASH! 💦'}
                 </span>
               </button>
 
@@ -596,8 +753,8 @@ export default function App() {
             <div className="w-full flex items-center justify-between text-xs text-white/80 font-bold px-2 py-1">
               <span>
                 {language === 'nl'
-                  ? '🍂 Herfstwereld & Nederlandse Woordjes voor peuters 📱'
-                  : '🍂 Autumn World & Dutch Learning for toddlers 📱'}
+                  ? '👑 Sinterklaas, 🎄 Kerst, 🎃 Halloween & Nederlandse Woordjes voor peuters 📱'
+                  : '👑 Sinterklaas, 🎄 Christmas, 🎃 Halloween & Dutch Learning for toddlers 📱'}
               </span>
               <button
                 onClick={() => setShowDeployModal(true)}
@@ -696,6 +853,7 @@ export default function App() {
             onEarnStar={handleEarnStar}
             onUnlockSticker={handleUnlockSticker}
             language={language}
+            initialTheme={appTheme}
           />
         )}
 

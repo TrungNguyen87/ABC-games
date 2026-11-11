@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Volume2, VolumeX, Music, RotateCcw, Home, HelpCircle, Sparkles } from 'lucide-react';
 import { sounds } from '../utils/soundEffects';
-import { Language } from '../types/game';
+import { Language, AppTheme } from '../types/game';
 import { fireConfettiBurst, ConfettiTheme } from './ConfettiCanvas';
 
 interface GameHeaderProps {
@@ -18,6 +18,8 @@ interface GameHeaderProps {
   language: Language;
   onToggleLanguage: () => void;
   title?: string;
+  appTheme?: AppTheme;
+  onCycleTheme?: () => void;
 }
 
 export default function GameHeader({
@@ -34,12 +36,15 @@ export default function GameHeader({
   language,
   onToggleLanguage,
   title,
+  appTheme = 'sinterklaas',
+  onCycleTheme,
 }: GameHeaderProps) {
   const [seasonalThemeIndex, setSeasonalThemeIndex] = useState(0);
   const seasonalThemes: { id: ConfettiTheme; icon: string; nameNl: string; nameEn: string }[] = [
+    { id: 'stars', icon: '👑', nameNl: 'Sinterklaas Feest', nameEn: 'Sinterklaas' },
+    { id: 'winter', icon: '🎄', nameNl: 'Kerstmis Wonder', nameEn: 'Christmas' },
     { id: 'autumn', icon: '🍂', nameNl: 'Herfstblaadjes', nameEn: 'Autumn Leaves' },
     { id: 'halloween', icon: '🎃', nameNl: 'Pompoentjes', nameEn: 'Halloween Pumpkins' },
-    { id: 'winter', icon: '❄️', nameNl: 'Sneeuwvlokken', nameEn: 'Winter Snowflakes' },
     { id: 'stars', icon: '⭐', nameNl: 'Gouden Sterren', nameEn: 'Golden Stars' },
   ];
 
@@ -95,6 +100,41 @@ export default function GameHeader({
 
       {/* Right: Language Toggle + Voice Style + Sound Controls + Repeat Audio */}
       <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Theme Cycle Button (Sinterklaas / Christmas / Halloween / Autumn / Classic) */}
+        {onCycleTheme && (
+          <button
+            onClick={() => {
+              sounds.playSparkle();
+              onCycleTheme();
+            }}
+            className="px-2.5 sm:px-3 h-11 sm:h-12 bg-amber-400 hover:bg-amber-300 text-amber-950 rounded-2xl flex items-center gap-1.5 font-black text-sm shadow-[0_4px_0_#b45309] active:translate-y-1 active:shadow-none transition-all cursor-pointer border border-white/40"
+            title={language === 'nl' ? 'Feestthema wisselen (Sinterklaas, Kerst, enz.)' : 'Toggle festive theme'}
+          >
+            <span className="text-xl">
+              {appTheme === 'sinterklaas'
+                ? '👑'
+                : appTheme === 'christmas'
+                ? '🎄'
+                : appTheme === 'halloween'
+                ? '🎃'
+                : appTheme === 'autumn'
+                ? '🍂'
+                : '🌈'}
+            </span>
+            <span className="hidden md:inline font-black text-xs uppercase">
+              {appTheme === 'sinterklaas'
+                ? 'Sint'
+                : appTheme === 'christmas'
+                ? 'Kerst'
+                : appTheme === 'halloween'
+                ? 'Halloween'
+                : appTheme === 'autumn'
+                ? 'Herfst'
+                : 'Regenboog'}
+            </span>
+          </button>
+        )}
+
         {/* Language Switcher (Dutch / English) */}
         <button
           onClick={() => {

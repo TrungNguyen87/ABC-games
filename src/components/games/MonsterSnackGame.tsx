@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ALPHABET_DATA } from '../../data/alphabetData';
+import { ALPHABET_DATA, getLetterWord, getLetterEmoji } from '../../data/alphabetData';
 import { LetterInfo, Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
 import { triggerKidCheer } from '../CheerCelebration';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Volume2 } from 'lucide-react';
 
 interface MonsterSnackGameProps {
   onEarnStar: () => void;
@@ -12,11 +12,14 @@ interface MonsterSnackGameProps {
   language: Language;
 }
 
+type SnackTheme = 'sinterklaas' | 'christmas' | 'classic';
+
 export default function MonsterSnackGame({
   onEarnStar,
   onUnlockSticker,
   language,
 }: MonsterSnackGameProps) {
+  const [theme, setTheme] = useState<SnackTheme>('sinterklaas');
   const [targetLetter, setTargetLetter] = useState<LetterInfo>(ALPHABET_DATA[0]);
   const [cookieOptions, setCookieOptions] = useState<LetterInfo[]>([]);
   const [monsterState, setMonsterState] = useState<'hungry' | 'chewing' | 'happy' | 'disgusted'>('hungry');
@@ -38,21 +41,26 @@ export default function MonsterSnackGame({
     const cookies = [...wrong, target].sort(() => 0.5 - Math.random());
     setCookieOptions(cookies);
 
-    const targetWord = language === 'nl' ? target.wordNl || target.word : target.word;
+    const targetWord = getLetterWord(target, language);
     setSpeechBubble(targetWord);
-    // Only speak the introductory phrase once
+
     if (!hasIntroducedRef.current) {
       hasIntroducedRef.current = true;
       if (language === 'nl') {
-        sounds.speak(`Voer het monster! ${targetWord}!`, 'nl');
+        if (theme === 'sinterklaas') {
+          sounds.speak(`Voer het paardje met letter ${target.letter} van ${targetWord}!`, 'nl');
+        } else if (theme === 'christmas') {
+          sounds.speak(`Voer de sneeuwpop met letter ${target.letter} van ${targetWord}!`, 'nl');
+        } else {
+          sounds.speak(`Voer het monster met letter ${target.letter} van ${targetWord}!`, 'nl');
+        }
       } else {
-        sounds.speak(`Feed the monster! ${targetWord}!`, 'en');
+        sounds.speak(`Feed letter ${target.letter} for ${targetWord}!`, 'en');
       }
     } else {
-      // Just say the word
-      sounds.speak(targetWord, language);
+      sounds.speak(`${target.letter}! ${targetWord}!`, language);
     }
-  }, [language]);
+  }, [theme, language]);
 
   useEffect(() => {
     nextRound();
@@ -61,10 +69,10 @@ export default function MonsterSnackGame({
   const handleFeedCookie = (cookie: LetterInfo) => {
     if (isLocked) return;
 
-    const cookieWord = language === 'nl' ? cookie.wordNl || cookie.word : cookie.word;
+    const cookieWord = getLetterWord(cookie, language);
+    const cookieEmoji = getLetterEmoji(cookie, language);
 
     if (cookie.letter === targetLetter.letter) {
-      // Monster loves it!
       setIsLocked(true);
       setMonsterState('chewing');
       sounds.playMunch();
@@ -72,167 +80,251 @@ export default function MonsterSnackGame({
 
       setTimeout(() => {
         setMonsterState('happy');
-        sounds.playBurp();
         sounds.playTada();
-        fireConfettiBurst();
+        fireConfettiBurst(
+          theme === 'sinterklaas' ? 'stars' : theme === 'christmas' ? 'winter' : 'rainbow'
+        );
         triggerKidCheer({
-          message: language === 'nl' ? 'LEKKER GEGETEN!' : 'YUMMY SNACK!',
-          emoji: '🍪',
+          message:
+            language === 'nl'
+              ? theme === 'sinterklaas'
+                ? 'LEKKERE PEPERNOOT!'
+                : 'LEKKER GEGETEN!'
+              : 'YUMMY SNACK!',
+          emoji: theme === 'sinterklaas' ? '🍪' : theme === 'christmas' ? '❄️' : '🍪',
         });
         onEarnStar();
         if (onUnlockSticker) onUnlockSticker(cookie.letter);
 
         setSpeechBubble(cookieWord);
-        // Just say the word, do not spell it
-        sounds.speak(cookieWord, language);
+        sounds.speak(
+          language === 'nl'
+            ? `Super! ${cookie.letter} van ${cookieWord}!`
+            : `Great! ${cookie.letter} for ${cookieWord}!`,
+          language
+        );
       }, 700);
 
       setTimeout(() => {
         nextRound();
-      }, 2100);
+      }, 2200);
     } else {
-      // Wrong cookie
       setMonsterState('disgusted');
       sounds.playBoing();
-      // Just say the clicked word
-      sounds.speak(cookieWord, language);
+      sounds.speak(`${cookie.letter}! ${cookieWord}!`, language);
 
       setTimeout(() => {
         setMonsterState('hungry');
-        setSpeechBubble(targetLetter.wordNl || targetLetter.word);
-      }, 700);
+      }, 1000);
     }
   };
 
+  const bgStyle =
+    theme === 'sinterklaas'
+      ? 'from-red-950 via-slate-900 to-amber-950'
+      : theme === 'christmas'
+      ? 'from-emerald-950 via-slate-900 to-blue-950'
+      : 'from-amber-400 via-orange-400 to-emerald-500';
+
   return (
-    <div className="w-full h-full flex flex-col items-center justify-between py-2 px-4 max-w-4xl mx-auto select-none">
-      {/* Monster Speech Prompt Bubble */}
-      <div className="mt-1 flex flex-col items-center">
+    <div
+      className={`w-full h-full flex flex-col items-center justify-between py-2 px-3 sm:px-6 max-w-4xl mx-auto select-none bg-gradient-to-b ${bgStyle} rounded-3xl transition-colors duration-500`}
+    >
+      {/* Top Banner & Theme Selector */}
+      <div className="z-20 flex flex-col items-center mt-1">
+        {/* Theme Pills */}
+        <div className="bg-black/35 backdrop-blur-md p-1 rounded-full flex gap-1 border border-white/30 mb-2">
+          {[
+            { id: 'sinterklaas' as const, labelNl: '👑 Paardje Amerigo', labelEn: '👑 Amerigo Horse' },
+            { id: 'christmas' as const, labelNl: '⛄ Sneeuwpop', labelEn: '⛄ Snowman' },
+            { id: 'classic' as const, labelNl: '👾 Smulmonster', labelEn: '👾 Snack Monster' },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => {
+                sounds.playPop();
+                setTheme(t.id);
+              }}
+              className={`px-3 py-1 text-xs font-black rounded-full transition-all cursor-pointer ${
+                theme === t.id
+                  ? 'bg-amber-400 text-amber-950 shadow-md scale-105'
+                  : 'text-white/80 hover:text-white'
+              }`}
+            >
+              {language === 'nl' ? t.labelNl : t.labelEn}
+            </button>
+          ))}
+        </div>
+
+        {/* Target Request Banner */}
         <div
-          onClick={() =>
+          onClick={() => {
+            const targetWord = getLetterWord(targetLetter, language);
             sounds.speak(
               language === 'nl'
-                ? `Voer mij de letter ${targetLetter.letter}!`
-                : `Feed me the letter ${targetLetter.letter}!`,
+                ? `Voer letter ${targetLetter.letter} van ${targetWord}!`
+                : `Feed letter ${targetLetter.letter} for ${targetWord}!`,
               language
-            )
-          }
-          className="relative bg-white text-slate-800 px-6 py-2 rounded-3xl shadow-xl border-4 border-amber-300 font-black text-xl sm:text-2xl cursor-pointer active:scale-95 transition-transform"
-        >
-          <span>
-            {speechBubble ||
-              (language === 'nl'
-                ? `Voer mij letter ${targetLetter.letter}!`
-                : `Feed me letter ${targetLetter.letter}!`)}
-          </span>
-          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[12px] border-t-white" />
-        </div>
-      </div>
-
-      {/* The Animated ABC Monster */}
-      <div className="relative flex flex-col items-center my-2">
-        <div
-          className={`relative w-48 h-48 sm:w-60 sm:h-60 rounded-[4rem] flex flex-col items-center justify-between p-4 transition-all duration-300
-            ${monsterState === 'chewing' ? 'animate-kid-bounce bg-emerald-500 scale-105' : ''}
-            ${monsterState === 'disgusted' ? 'animate-shake-wrong bg-purple-500' : 'bg-emerald-500'}
-            ${monsterState === 'happy' ? 'animate-kid-wiggle bg-emerald-400' : ''}
-          `}
-          style={{
-            boxShadow: '0 12px 0 #047857, 0 25px 30px -10px rgba(0,0,0,0.3)',
+            );
           }}
+          className="flex items-center gap-2 sm:gap-3 bg-white/40 backdrop-blur-md px-5 py-2 rounded-full border-2 border-white shadow-xl cursor-pointer active:scale-95 transition-transform"
         >
-          {/* Monster Fur Horns */}
-          <div className="absolute -top-5 left-6 w-8 h-12 bg-amber-400 rounded-full rotate-[-20deg] border-4 border-emerald-700" />
-          <div className="absolute -top-5 right-6 w-8 h-12 bg-amber-400 rounded-full rotate-[20deg] border-4 border-emerald-700" />
-
-          {/* Googly Monster Eyes */}
-          <div className="flex items-center gap-4 mt-2">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center border-4 border-emerald-800 shadow-inner relative overflow-hidden">
-              <div
-                className={`w-6 h-6 bg-slate-900 rounded-full transition-transform ${
-                  monsterState === 'chewing' ? 'scale-75' : ''
-                } ${monsterState === 'disgusted' ? 'translate-x-2' : ''}`}
-              >
-                <div className="w-2 h-2 bg-white rounded-full ml-1 mt-1" />
-              </div>
-            </div>
-
-            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center border-4 border-emerald-800 shadow-inner relative overflow-hidden">
-              <div
-                className={`w-6 h-6 bg-slate-900 rounded-full transition-transform ${
-                  monsterState === 'chewing' ? 'scale-75' : ''
-                } ${monsterState === 'disgusted' ? '-translate-x-2' : ''}`}
-              >
-                <div className="w-2 h-2 bg-white rounded-full ml-1 mt-1" />
-              </div>
-            </div>
-          </div>
-
-          {/* Big Monster Mouth */}
-          <div
-            className={`relative w-36 sm:w-44 bg-rose-950 rounded-full flex items-center justify-center overflow-hidden border-4 border-emerald-800 transition-all duration-200 ${
-              monsterState === 'chewing'
-                ? 'h-8'
-                : monsterState === 'happy'
-                ? 'h-24'
-                : monsterState === 'disgusted'
-                ? 'h-10 rotate-12'
-                : 'h-20'
-            }`}
+          <span className="text-white text-base sm:text-lg font-black drop-shadow">
+            {language === 'nl' ? 'Gevraagd:' : 'Wants:'}
+          </span>
+          <span
+            className="text-3xl sm:text-4xl font-black px-4 py-0.5 rounded-2xl text-white drop-shadow-md"
+            style={{ backgroundColor: targetLetter.color }}
           >
-            {/* Cartoon Teeth */}
-            <div className="absolute top-0 flex gap-2">
-              <div className="w-4 h-4 bg-white rounded-b-md" />
-              <div className="w-4 h-5 bg-white rounded-b-md" />
-              <div className="w-4 h-4 bg-white rounded-b-md" />
-            </div>
-
-            {/* Tongue */}
-            <div className="absolute bottom-0 w-24 h-10 bg-rose-500 rounded-t-full" />
-
-            {/* Hungry letter cue */}
-            {monsterState === 'hungry' && (
-              <span className="z-10 text-3xl font-black text-yellow-300 drop-shadow">
-                {targetLetter.letter}
-              </span>
-            )}
-          </div>
-
-          {/* Monster Bib */}
-          <div className="bg-emerald-600/60 px-4 py-1 rounded-full text-xs font-bold text-white tracking-wide">
-            {language === 'nl' ? 'SMUL-MONSTER' : 'YUM-YUM MONSTER'}
-          </div>
+            {targetLetter.letter}
+          </span>
+          <span className="text-3xl filter drop-shadow">
+            {getLetterEmoji(targetLetter, language)}
+          </span>
+          <span className="text-base sm:text-lg font-black text-amber-200">
+            {getLetterWord(targetLetter, language)}
+          </span>
+          <Volume2 className="w-4 h-4 text-white animate-pulse ml-1" />
         </div>
       </div>
 
-      {/* Cookie Plate */}
+      {/* Center Animated Character */}
+      <div className="relative flex flex-col items-center justify-center my-auto">
+        {/* Character Card */}
+        <div
+          className={`relative w-48 h-48 sm:w-60 sm:h-60 rounded-[3rem] border-6 flex flex-col items-center justify-center transition-all duration-300 ${
+            theme === 'sinterklaas'
+              ? 'bg-gradient-to-b from-amber-100 to-amber-200 border-amber-600 shadow-[0_12px_0_#b45309]'
+              : theme === 'christmas'
+              ? 'bg-gradient-to-b from-sky-100 to-white border-blue-400 shadow-[0_12px_0_#0284c7]'
+              : 'bg-emerald-500 border-emerald-700 shadow-[0_12px_0_#047857]'
+          }`}
+        >
+          {theme === 'sinterklaas' ? (
+            /* Amerigo Horse Character */
+            <div className="flex flex-col items-center">
+              <span className="text-7xl sm:text-8xl animate-kid-bounce">🐴</span>
+              <span className="text-xs sm:text-sm font-black text-amber-950 mt-1 bg-amber-300/80 px-3 py-0.5 rounded-full">
+                {language === 'nl' ? 'Paard Amerigo' : 'Amerigo the Horse'}
+              </span>
+            </div>
+          ) : theme === 'christmas' ? (
+            /* Snowman Character */
+            <div className="flex flex-col items-center">
+              <span className="text-7xl sm:text-8xl animate-kid-bounce">⛄</span>
+              <span className="text-xs sm:text-sm font-black text-blue-950 mt-1 bg-sky-200 px-3 py-0.5 rounded-full">
+                {language === 'nl' ? 'Vrolijke Sneeuwpop' : 'Happy Snowman'}
+              </span>
+            </div>
+          ) : (
+            /* Cookie Monster */
+            <>
+              {/* Googly Monster Eyes */}
+              <div className="flex items-center gap-4 mt-2">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center border-4 border-emerald-800 shadow-inner relative overflow-hidden">
+                  <div
+                    className={`w-6 h-6 bg-slate-900 rounded-full transition-transform ${
+                      monsterState === 'chewing' ? 'scale-75' : ''
+                    } ${monsterState === 'disgusted' ? 'translate-x-2' : ''}`}
+                  >
+                    <div className="w-2 h-2 bg-white rounded-full ml-1 mt-1" />
+                  </div>
+                </div>
+
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center border-4 border-emerald-800 shadow-inner relative overflow-hidden">
+                  <div
+                    className={`w-6 h-6 bg-slate-900 rounded-full transition-transform ${
+                      monsterState === 'chewing' ? 'scale-75' : ''
+                    } ${monsterState === 'disgusted' ? '-translate-x-2' : ''}`}
+                  >
+                    <div className="w-2 h-2 bg-white rounded-full ml-1 mt-1" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Big Monster Mouth */}
+              <div
+                className={`relative w-36 sm:w-44 bg-rose-950 rounded-full flex items-center justify-center overflow-hidden border-4 border-emerald-800 transition-all duration-200 ${
+                  monsterState === 'chewing'
+                    ? 'h-8'
+                    : monsterState === 'happy'
+                    ? 'h-24'
+                    : monsterState === 'disgusted'
+                    ? 'h-10 rotate-12'
+                    : 'h-20'
+                }`}
+              >
+                <div className="absolute top-0 flex gap-2">
+                  <div className="w-4 h-4 bg-white rounded-b-md" />
+                  <div className="w-4 h-5 bg-white rounded-b-md" />
+                  <div className="w-4 h-4 bg-white rounded-b-md" />
+                </div>
+                <div className="absolute bottom-0 w-24 h-10 bg-rose-500 rounded-t-full" />
+                {monsterState === 'hungry' && (
+                  <span className="z-10 text-3xl font-black text-yellow-300 drop-shadow">
+                    {targetLetter.letter}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Chewing / Reaction Bubble */}
+          {monsterState === 'chewing' && (
+            <div className="absolute -top-6 bg-yellow-300 text-yellow-950 font-black px-4 py-1 rounded-full shadow-lg animate-bounce text-sm">
+              {language === 'nl' ? 'Mjum mjum mjum! 🍪' : 'Nom nom nom! 🍪'}
+            </div>
+          )}
+          {monsterState === 'happy' && (
+            <div className="absolute -top-6 bg-emerald-400 text-emerald-950 font-black px-4 py-1 rounded-full shadow-lg animate-bounce text-sm">
+              {language === 'nl' ? 'Heerlijk gegeten! 🌟' : 'Super delicious! 🌟'}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Treat / Cookie Plate */}
       <div className="w-full flex flex-col items-center">
-        <div className="text-white font-extrabold text-base sm:text-lg drop-shadow mb-2">
-          {language === 'nl'
+        <div className="text-white font-extrabold text-sm sm:text-base drop-shadow mb-2 text-center">
+          {theme === 'sinterklaas'
+            ? language === 'nl'
+              ? 'Kies de juiste pepernoot om het paard te voeren! 🍪'
+              : 'Choose the right spiced cookie for the horse! 🍪'
+            : theme === 'christmas'
+            ? language === 'nl'
+              ? 'Kies het kerstkoekje voor de sneeuwpop! ⛄'
+              : 'Choose the holiday cookie for the snowman! ⛄'
+            : language === 'nl'
             ? 'Tik op het letterkoekje om het monster te voeren! 🍪'
             : 'Tap the letter cookie to feed the monster! 🍪'}
         </div>
 
-        <div className="bg-white/30 backdrop-blur-md p-3 sm:p-5 rounded-[2.5rem] border-4 border-white/60 shadow-2xl flex items-center justify-center gap-4 sm:gap-8">
-          {cookieOptions.map((cookie) => (
-            <button
-              key={cookie.letter}
-              onClick={() => handleFeedCookie(cookie)}
-              disabled={isLocked}
-              className="group relative w-20 h-20 sm:w-28 sm:h-28 rounded-full flex flex-col items-center justify-center font-black text-white text-4xl sm:text-5xl cursor-pointer transition-all active:scale-90 active:translate-y-2 hover:scale-105"
-              style={{
-                backgroundColor: cookie.color,
-                boxShadow: `0 8px 0 ${cookie.shadowColor}, 0 12px 20px rgba(0,0,0,0.25)`,
-              }}
-            >
-              <div className="absolute top-2 left-4 w-2 h-2 rounded-full bg-white/40" />
-              <div className="absolute bottom-3 right-4 w-2.5 h-2.5 rounded-full bg-black/20" />
-              <div className="absolute top-3 right-5 w-2 h-2 rounded-full bg-black/20" />
+        <div className="bg-white/35 backdrop-blur-md p-3 sm:p-5 rounded-[2.5rem] border-4 border-white/60 shadow-2xl flex items-center justify-center gap-3 sm:gap-6 flex-wrap">
+          {cookieOptions.map((cookie) => {
+            const word = getLetterWord(cookie, language);
+            const emoji = getLetterEmoji(cookie, language);
 
-              <span className="drop-shadow-md select-none">{cookie.letter}</span>
-              <span className="text-xs sm:text-sm font-bold opacity-90">{cookie.emoji}</span>
-            </button>
-          ))}
+            return (
+              <button
+                key={cookie.letter}
+                onClick={() => handleFeedCookie(cookie)}
+                disabled={isLocked}
+                className="group relative w-22 h-26 sm:w-28 sm:h-32 rounded-3xl flex flex-col items-center justify-center font-black text-white cursor-pointer transition-all active:scale-90 active:translate-y-2 hover:scale-105 shadow-xl border-3 border-white/40"
+                style={{
+                  backgroundColor: cookie.color,
+                  boxShadow: `0 8px 0 ${cookie.shadowColor}, 0 14px 22px rgba(0,0,0,0.3)`,
+                }}
+              >
+                <span className="text-4xl sm:text-5xl font-black drop-shadow-md select-none leading-none">
+                  {cookie.letter}
+                </span>
+                <span className="text-2xl sm:text-3xl filter drop-shadow my-0.5">{emoji}</span>
+                <span className="text-[10px] sm:text-xs font-black bg-black/35 px-2 py-0.5 rounded-full text-white">
+                  {word}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -111,6 +111,42 @@ interface ShadeFamily {
 
 const SHADE_FAMILIES: ShadeFamily[] = [
   {
+    id: 'sinterklaas-gold-red',
+    nameNl: 'Sinterklaas Goud & Robijn',
+    nameEn: 'Sinterklaas Gold & Ruby',
+    emoji: '👑',
+    steps: [
+      { labelNl: 'Licht goudgeel', labelEn: 'Pale Gold', bgHex: '#fef08a', borderHex: '#fde047', textColor: '#854d0e' },
+      { labelNl: 'Warm speculaasgoud', labelEn: 'Amber Gold', bgHex: '#f59e0b', borderHex: '#d97706', textColor: '#ffffff' },
+      { labelNl: 'Mijter rood', labelEn: 'Mitre Red', bgHex: '#dc2626', borderHex: '#b91c1c', textColor: '#ffffff' },
+      { labelNl: 'Vorstelijk purperrood', labelEn: 'Royal Crimson', bgHex: '#7f1d1d', borderHex: '#450a0a', textColor: '#fef2f2' },
+    ],
+  },
+  {
+    id: 'christmas-pine-winter',
+    nameNl: 'Kerstmis Dennen & Hulst',
+    nameEn: 'Christmas Pine & Holly',
+    emoji: '🎄',
+    steps: [
+      { labelNl: 'Licht muntgroen', labelEn: 'Pale Mint', bgHex: '#bbf7d0', borderHex: '#86efac', textColor: '#14532d' },
+      { labelNl: 'Fris kerstgroen', labelEn: 'Pine Green', bgHex: '#22c55e', borderHex: '#16a34a', textColor: '#ffffff' },
+      { labelNl: 'Diep hulstgroen', labelEn: 'Deep Holly', bgHex: '#15803d', borderHex: '#166534', textColor: '#ffffff' },
+      { labelNl: 'Donker winterbos', labelEn: 'Midnight Evergreen', bgHex: '#052e16', borderHex: '#022c22', textColor: '#dcfce7' },
+    ],
+  },
+  {
+    id: 'christmas-santa-ruby',
+    nameNl: 'Kerstman Robijnrood',
+    nameEn: 'Santa Claus Ruby Red',
+    emoji: '🎅',
+    steps: [
+      { labelNl: 'Licht sneeuwroze', labelEn: 'Snow Pink', bgHex: '#ffe4e6', borderHex: '#fecdd3', textColor: '#9f1239' },
+      { labelNl: 'Vrolijk kerstrood', labelEn: 'Bright Festive Red', bgHex: '#f43f5e', borderHex: '#e11d48', textColor: '#ffffff' },
+      { labelNl: 'Diep robijnrood', labelEn: 'Deep Ruby Red', bgHex: '#be123c', borderHex: '#9f1239', textColor: '#ffffff' },
+      { labelNl: 'Donker fluweelrood', labelEn: 'Dark Velvet Maroon', bgHex: '#4c0519', borderHex: '#27030c', textColor: '#ffe4e6' },
+    ],
+  },
+  {
     id: 'pumpkin-orange',
     nameNl: 'Pompoen Oranje',
     nameEn: 'Pumpkin Orange',
@@ -194,6 +230,65 @@ const RAINBOW_SPECTRUM = [
   { letter: 'F', nameNl: 'Paars', nameEn: 'Purple', bgHex: '#a855f7', borderHex: '#7e22ce', textColor: '#ffffff', soundRatio: 0.95 },
 ];
 
+// Multi-stop gradient palettes for Type 3: Gradient Studio
+const STUDIO_GRADIENTS = [
+  {
+    id: 'sinterklaas',
+    nameNl: '👑 Sinterklaas Goud & Robijn',
+    nameEn: '👑 Saint Nicholas Gold',
+    css: 'linear-gradient(135deg, #fde047 0%, #f59e0b 35%, #dc2626 70%, #7f1d1d 100%)',
+    stops: ['#fde047', '#f59e0b', '#dc2626', '#7f1d1d'],
+  },
+  {
+    id: 'christmas',
+    nameNl: '🎄 Kerst Dennen & Sneeuw',
+    nameEn: '🎄 Christmas Pine & Snow',
+    css: 'linear-gradient(135deg, #ffffff 0%, #38bdf8 25%, #22c55e 65%, #dc2626 100%)',
+    stops: ['#ffffff', '#38bdf8', '#22c55e', '#dc2626'],
+  },
+  {
+    id: 'sunset',
+    nameNl: '🌅 Zonsondergang',
+    nameEn: '🌅 Sunset Glow',
+    css: 'linear-gradient(135deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%)',
+    stops: ['#f59e0b', '#ec4899', '#8b5cf6'],
+  },
+  {
+    id: 'halloween',
+    nameNl: '🎃 Spooky Neon',
+    nameEn: '🎃 Spooky Neon',
+    css: 'linear-gradient(135deg, #a855f7 0%, #3b82f6 40%, #10b981 80%, #f97316 100%)',
+    stops: ['#a855f7', '#3b82f6', '#10b981', '#f97316'],
+  },
+  {
+    id: 'autumn',
+    nameNl: '🍂 Herfstbladeren',
+    nameEn: '🍂 Autumn Woods',
+    css: 'linear-gradient(135deg, #fde047 0%, #f97316 45%, #b91c1c 80%, #78350f 100%)',
+    stops: ['#fde047', '#f97316', '#b91c1c', '#78350f'],
+  },
+  {
+    id: 'ocean',
+    nameNl: '🌊 Tropische Zee',
+    nameEn: '🌊 Ocean Aurora',
+    css: 'linear-gradient(135deg, #2dd4bf 0%, #06b6d4 40%, #3b82f6 75%, #1e1b4b 100%)',
+    stops: ['#2dd4bf', '#06b6d4', '#3b82f6', '#1e1b4b'],
+  },
+  {
+    id: 'cotton-candy',
+    nameNl: '🍭 Suikerspin',
+    nameEn: '🍭 Candy Magic',
+    css: 'linear-gradient(135deg, #f472b6 0%, #c084fc 50%, #67e8f9 100%)',
+    stops: ['#f472b6', '#c084fc', '#67e8f9'],
+  },
+  {
+    id: 'rainbow',
+    nameNl: '🌈 Volle Regenboog',
+    nameEn: '🌈 Full Rainbow',
+    css: 'linear-gradient(135deg, #ef4444 0%, #f97316 20%, #eab308 40%, #22c55e 60%, #3b82f6 80%, #a855f7 100%)',
+    stops: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'],
+  },
+];
 export default function ColorGradingGame({
   onEarnStar,
   onUnlockSticker,
@@ -499,21 +594,24 @@ export default function ColorGradingGame({
     }
   };
 
-  const handleSelectShadeCard = (item: { id: string; stepIndex: number }) => {
+  // Place shade card directly into a specific rack slot (via drag & drop or tap)
+  const handlePlaceShadeInSlot = (slotIdx: number, stepIndex: number) => {
     if (isShadeComplete) return;
-    const emptySlotIdx = placedShades.findIndex((s) => s === null);
-    if (emptySlotIdx === -1) return;
-    if (placedShades.includes(item.stepIndex)) return;
 
     const nextPlaced = [...placedShades];
-    nextPlaced[emptySlotIdx] = item.stepIndex;
+    // If this stepIndex was already in another slot, clear old slot
+    const prevSlot = nextPlaced.indexOf(stepIndex);
+    if (prevSlot !== -1) {
+      nextPlaced[prevSlot] = null;
+    }
+    nextPlaced[slotIdx] = stepIndex;
     setPlacedShades(nextPlaced);
 
-    sounds.playColorChime((item.stepIndex + 1) / 4);
+    sounds.playColorChime((stepIndex + 1) / 4);
 
     const isAllPlaced = nextPlaced.every((s) => s !== null);
     if (!isAllPlaced) {
-      const stepInfo = currentShadeFamily.steps[item.stepIndex];
+      const stepInfo = currentShadeFamily.steps[stepIndex];
       const stepLabel = language === 'nl' ? stepInfo.labelNl : stepInfo.labelEn;
       sounds.speak(stepLabel, language);
     } else {
@@ -543,6 +641,21 @@ export default function ColorGradingGame({
     }
   };
 
+  // Toddler taps an available shade card to place into next empty slot
+  const handleSelectShadeCard = (item: { id: string; stepIndex: number }) => {
+    if (isShadeComplete) return;
+
+    // Find next empty target slot
+    const emptySlotIdx = placedShades.findIndex((s) => s === null);
+    if (emptySlotIdx === -1) return;
+
+    // Check if item is already placed
+    if (placedShades.includes(item.stepIndex)) return;
+
+    handlePlaceShadeInSlot(emptySlotIdx, item.stepIndex);
+  };
+
+  // Remove card from slot
   const handleRemoveFromRack = (slotIdx: number) => {
     if (isShadeComplete) return;
     if (placedShades[slotIdx] === null) return;
@@ -1110,20 +1223,31 @@ export default function ColorGradingGame({
                     key={slotIdx}
                     type="button"
                     onClick={() => handleRemoveFromRack(slotIdx)}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const droppedStep = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                      if (!isNaN(droppedStep)) {
+                        handlePlaceShadeInSlot(slotIdx, droppedStep);
+                      }
+                    }}
                     disabled={!hasCard || isShadeComplete}
-                    className={`relative w-16 h-22 sm:w-20 sm:h-28 md:w-24 md:h-32 rounded-2xl sm:rounded-3xl flex flex-col items-center justify-center transition-all duration-300 select-none ${
+                    className={`relative w-20 h-28 sm:w-26 sm:h-36 md:w-30 md:h-40 rounded-3xl flex flex-col items-center justify-center transition-all duration-300 select-none ${
                       hasCard
-                        ? 'cursor-pointer active:scale-95 shadow-xl rotate-0'
-                        : 'border-2 sm:border-3 border-dashed border-white/40 bg-white/10'
+                        ? 'cursor-pointer active:scale-95 shadow-2xl rotate-0'
+                        : 'border-3 border-dashed border-white/50 bg-white/10 hover:border-amber-300 hover:bg-white/20'
                     }`}
                     style={
                       hasCard
                         ? {
                             backgroundColor: step!.bgHex,
                             borderColor: step!.borderHex,
-                            borderWidth: '3px',
+                            borderWidth: '4px',
                             borderStyle: 'solid',
-                            boxShadow: `0 6px 0 ${step!.borderHex}`,
+                            boxShadow: `0 8px 0 ${step!.borderHex}`,
                           }
                         : {}
                     }
@@ -1131,19 +1255,21 @@ export default function ColorGradingGame({
                     {hasCard ? (
                       <div className="flex flex-col items-center justify-center animate-pop-in">
                         <span
-                          className="text-4xl sm:text-5xl md:text-6xl font-black drop-shadow-md"
+                          className="text-5xl sm:text-6xl md:text-7xl font-black drop-shadow-md select-none leading-none"
                           style={{ color: step!.textColor }}
                         >
                           {shadeTargetLetter}
                         </span>
-                        <span className="text-[9px] sm:text-[10px] font-black mt-1 px-1.5 py-0.5 rounded-full bg-black/30 text-white">
+                        <span
+                          className="text-[9px] sm:text-xs font-black mt-1.5 px-2 py-0.5 rounded-full bg-black/35 text-white"
+                        >
                           {language === 'nl' ? step!.labelNl : step!.labelEn}
                         </span>
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center opacity-40">
-                        <span className="text-xl sm:text-2xl font-black">{slotIdx + 1}</span>
-                        <span className="text-[9px] font-bold">
+                        <span className="text-2xl sm:text-3xl font-black">{slotIdx + 1}</span>
+                        <span className="text-[10px] sm:text-xs font-bold mt-1">
                           {slotIdx === 0
                             ? language === 'nl'
                               ? 'Lichtst'
@@ -1157,7 +1283,8 @@ export default function ColorGradingGame({
                       </div>
                     )}
 
-                    <div className="absolute -top-2 -left-2 bg-black/60 text-white font-black text-[10px] w-5 h-5 rounded-full flex items-center justify-center border border-white/50">
+                    {/* Step number badge */}
+                    <div className="absolute -top-2.5 -left-2.5 bg-black/75 text-amber-300 font-black text-xs w-6 h-6 rounded-full flex items-center justify-center border-2 border-white/60 shadow">
                       {slotIdx + 1}
                     </div>
                   </button>
@@ -1192,18 +1319,18 @@ export default function ColorGradingGame({
             )}
           </div>
 
-          {/* Shuffled Letter Cards to Choose From (Bottom Pool) */}
-          <div className="w-full max-w-2xl bg-black/35 backdrop-blur-md rounded-2xl sm:rounded-3xl p-2.5 sm:p-3 border-2 border-white/20 flex flex-col items-center flex-shrink-0 mt-2">
-            <div className="text-[11px] sm:text-xs font-black text-white/90 mb-2 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+          {/* Shuffled Letter Cards to Choose From (Bottom Pool) - Extra Large for Easy Tapping/Dragging */}
+          <div className="w-full max-w-3xl bg-black/35 backdrop-blur-md rounded-2xl sm:rounded-3xl p-3 border-2 border-white/20 flex flex-col items-center flex-shrink-0 mt-2">
+            <div className="text-xs sm:text-sm font-black text-white/90 mb-2 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-300" />
               <span>
                 {language === 'nl'
-                  ? 'Kies de juiste tint en zet hem op de plank:'
-                  : 'Pick the shade and place it on the rack:'}
+                  ? 'Kies of sleep de grote lettertinten naar de juiste plek:'
+                  : 'Tap or drag the big letter shades to the matching spot:'}
               </span>
             </div>
 
-            <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center justify-center gap-2.5 sm:gap-4 flex-wrap">
               {availableShades.map((item) => {
                 const step = currentShadeFamily.steps[item.stepIndex];
                 const isPlaced = placedShades.includes(item.stepIndex);
@@ -1212,28 +1339,32 @@ export default function ColorGradingGame({
                   <button
                     key={item.id}
                     type="button"
+                    draggable={!isPlaced && !isShadeComplete}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', item.stepIndex.toString());
+                    }}
                     onClick={() => handleSelectShadeCard(item)}
                     disabled={isPlaced || isShadeComplete}
-                    className={`relative w-15 h-20 sm:w-18 sm:h-24 rounded-2xl flex flex-col items-center justify-center font-black transition-all duration-200 cursor-pointer shadow-lg active:scale-90 ${
+                    className={`relative w-20 h-28 sm:w-26 sm:h-36 md:w-30 md:h-40 rounded-3xl flex flex-col items-center justify-center font-black transition-all duration-200 cursor-grab active:cursor-grabbing shadow-xl select-none ${
                       isPlaced
                         ? 'opacity-20 pointer-events-none scale-90 translate-y-2'
-                        : 'hover:scale-105 active:translate-y-1'
+                        : 'hover:scale-105 active:scale-95 active:translate-y-1'
                     }`}
                     style={{
                       backgroundColor: step.bgHex,
                       borderColor: step.borderHex,
-                      borderWidth: '3px',
+                      borderWidth: '4px',
                       borderStyle: 'solid',
-                      boxShadow: `0 5px 0 ${step.borderHex}`,
+                      boxShadow: `0 7px 0 ${step.borderHex}`,
                     }}
                   >
                     <span
-                      className="text-3xl sm:text-4xl font-black drop-shadow"
+                      className="text-5xl sm:text-6xl md:text-7xl font-black drop-shadow-md leading-none select-none"
                       style={{ color: step.textColor }}
                     >
                       {shadeTargetLetter}
                     </span>
-                    <span className="text-[8px] sm:text-[9px] font-black px-1 rounded bg-black/25 text-white mt-0.5">
+                    <span className="text-[9px] sm:text-xs font-black px-2 py-0.5 rounded-full bg-black/35 text-white mt-1.5">
                       {language === 'nl' ? step.labelNl : step.labelEn}
                     </span>
                   </button>

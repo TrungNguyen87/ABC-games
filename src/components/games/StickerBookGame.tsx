@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ALPHABET_DATA } from '../../data/alphabetData';
+import { ALPHABET_DATA, getLetterWord, getLetterEmoji } from '../../data/alphabetData';
 import { Language } from '../../types/game';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
@@ -24,26 +24,26 @@ interface StickerBookGameProps {
 }
 
 export default function StickerBookGame({ unlockedLetters, language }: StickerBookGameProps) {
-  const [scene, setScene] = useState<'autumn' | 'park' | 'ocean' | 'space' | 'rainbow'>('autumn');
+  const [scene, setScene] = useState<'sinterklaas' | 'christmas' | 'autumn' | 'park' | 'ocean' | 'space' | 'rainbow'>('sinterklaas');
   const [placedStickers, setPlacedStickers] = useState<PlacedSticker[]>([
     {
       id: 1,
-      letter: 'H',
-      emoji: '🍂',
-      word: 'Autumn',
-      wordNl: 'Herfst',
-      color: '#D97706',
+      letter: 'S',
+      emoji: '👑',
+      word: 'Saint',
+      wordNl: 'Sinterklaas',
+      color: '#DC2626',
       x: 35,
       y: 50,
       rotation: -5,
     },
     {
       id: 2,
-      letter: 'E',
-      emoji: '🦔',
-      word: 'Hedgehog',
-      wordNl: 'Egel',
-      color: '#B45309',
+      letter: 'P',
+      emoji: '🎁',
+      word: 'Pete',
+      wordNl: 'Piet',
+      color: '#F59E0B',
       x: 60,
       y: 55,
       rotation: 8,
@@ -52,6 +52,36 @@ export default function StickerBookGame({ unlockedLetters, language }: StickerBo
   const [selectedSticker, setSelectedSticker] = useState<string | null>(null);
 
   const scenes = {
+    sinterklaas: {
+      nameNl: '👑 Sinterklaas Avond',
+      nameEn: '👑 Saint Nicholas Night',
+      bgClass: 'bg-gradient-to-b from-red-950 via-slate-900 to-amber-950',
+      elements: (
+        <>
+          <div className="absolute top-6 left-8 text-6xl animate-gentle-float">🌙</div>
+          <div className="absolute top-12 right-12 text-6xl opacity-80 animate-gentle-float">⭐</div>
+          <div className="absolute bottom-4 left-6 text-7xl">🐴</div>
+          <div className="absolute bottom-6 right-10 text-7xl">🎁</div>
+          <div className="absolute bottom-2 left-1/3 text-6xl">👞</div>
+          <div className="absolute top-20 left-1/2 text-5xl opacity-75">🍪</div>
+        </>
+      ),
+    },
+    christmas: {
+      nameNl: '🎄 Winter Kerstdorp',
+      nameEn: '🎄 Winter Christmas Village',
+      bgClass: 'bg-gradient-to-b from-emerald-950 via-slate-900 to-sky-950',
+      elements: (
+        <>
+          <div className="absolute top-6 left-8 text-6xl animate-gentle-float">❄️</div>
+          <div className="absolute top-12 right-12 text-6xl opacity-80 animate-gentle-float">⭐</div>
+          <div className="absolute bottom-4 left-6 text-7xl">🎄</div>
+          <div className="absolute bottom-6 right-10 text-7xl">⛄</div>
+          <div className="absolute bottom-2 left-1/3 text-6xl">🔔</div>
+          <div className="absolute top-20 left-1/2 text-5xl opacity-75">🦌</div>
+        </>
+      ),
+    },
     autumn: {
       nameNl: '🍂 Herfstbos',
       nameEn: '🍂 Autumn Woods',
@@ -152,7 +182,7 @@ export default function StickerBookGame({ unlockedLetters, language }: StickerBo
       {
         id: Date.now(),
         letter: letterItem.letter,
-        emoji: letterItem.emoji,
+        emoji: getLetterEmoji(letterItem, language),
         word: letterItem.word,
         wordNl: letterItem.wordNl,
         color: letterItem.color,
