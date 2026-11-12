@@ -19,9 +19,9 @@ export type SpeechLang = 'en' | 'nl';
  */
 export const LETTER_NAMES: Record<SpeechLang, Record<string, string>> = {
   nl: {
-    A: 'aa', B: 'bee', C: 'cee', D: 'dee', E: 'ee', F: 'ef', G: 'gee', H: 'haa', I: 'ie',
-    J: 'jee', K: 'kaa', L: 'el', M: 'em', N: 'en', O: 'oo', P: 'pee', Q: 'kuu', R: 'er',
-    S: 'es', T: 'tee', U: 'uu', V: 'vee', W: 'wee', X: 'iks', Y: 'Griekse ij', Z: 'zet',
+    A: 'aa', B: 'bé', C: 'cé', D: 'dé', E: 'ee', F: 'ef', G: 'gé', H: 'haa', I: 'ie',
+    J: 'jee', K: 'kaa', L: 'el', M: 'em', N: 'en', O: 'oo', P: 'pé', Q: 'kuu', R: 'er',
+    S: 'es', T: 'té', U: 'uu', V: 'vé', W: 'wé', X: 'iks', Y: 'Griekse ij', Z: 'zet',
   },
   en: {
     A: 'ay', B: 'bee', C: 'see', D: 'dee', E: 'ee', F: 'eff', G: 'jee', H: 'aitch', I: 'eye',

@@ -61,7 +61,7 @@ export default function LetterTraceGame({
     fireConfettiBurst();
     triggerKidCheer({
       message: language === 'nl' ? 'MOOI GETEKEND!' : 'GREAT TRACING!',
-      emoji: letterInfo.emoji,
+      emoji: getLetterEmoji(letterInfo, language),
     });
     onEarnStar();
     if (onUnlockSticker) onUnlockSticker(letterInfo.letter);
@@ -161,7 +161,7 @@ export default function LetterTraceGame({
             <span className="text-2xl font-black text-white drop-shadow">
               {language === 'nl' ? `Teken Letter ${letterInfo.letter}` : `Trace Letter ${letterInfo.letter}`}
             </span>
-            <span className="text-2xl">{letterInfo.emoji}</span>
+            <span className="text-2xl">{getLetterEmoji(letterInfo, language)}</span>
           </div>
 
           <button

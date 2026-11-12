@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Language, LetterStyleOption } from '../../types/game';
-import { ALPHABET_DATA } from '../../data/alphabetData';
+import { ALPHABET_DATA, getLetterEmoji, getLetterWord } from '../../data/alphabetData';
+import { LETTER_NAMES } from '../../utils/speechText';
 import { sounds } from '../../utils/soundEffects';
 import { fireConfettiBurst } from '../ConfettiCanvas';
 import { triggerKidCheer } from '../CheerCelebration';
@@ -679,7 +680,11 @@ export default function ColorGradingGame({
     setRainbowPlaced(nextPlaced);
 
     const colorName = language === 'nl' ? step.nameNl : step.nameEn;
-    sounds.speak(`${step.letter}! ${colorName}!`, language);
+    const letterPronounce = language === 'nl' ? (LETTER_NAMES.nl[step.letter] || step.letter) : step.letter;
+    const spoken = language === 'nl'
+      ? `${letterPronounce}! ${colorName}!`
+      : `${step.letter}! ${colorName}!`;
+    sounds.speak(spoken, language);
 
     if (nextPlaced.every(Boolean)) {
       setIsRainbowComplete(true);
@@ -833,13 +838,14 @@ export default function ColorGradingGame({
           <div
             onClick={() => {
               sounds.playBoing();
-              const letterWord =
+              const letterWord = getLetterWord(currentLetterInfo, language);
+              const letterPronounce =
                 language === 'nl'
-                  ? currentLetterInfo.wordNl || currentLetterInfo.word
-                  : currentLetterInfo.word;
+                  ? LETTER_NAMES.nl[paintLetter] || paintLetter
+                  : paintLetter;
               const phrase =
                 language === 'nl'
-                  ? `${paintLetter} van ${letterWord}!`
+                  ? `${letterPronounce} van ${letterWord}!`
                   : `${paintLetter} for ${letterWord}!`;
               sounds.speak(phrase, language);
             }}
@@ -849,11 +855,11 @@ export default function ColorGradingGame({
               <Volume2 className="w-4 h-4 animate-pulse" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xl">{currentLetterInfo.emoji}</span>
+              <span className="text-2xl">{getLetterEmoji(currentLetterInfo, language)}</span>
               <span className="text-base sm:text-lg font-black tracking-wide drop-shadow">
                 {language === 'nl'
-                  ? `Schilder de letter ${paintLetter} met je vingers!`
-                  : `Paint letter ${paintLetter} with your fingers!`}
+                  ? `${paintLetter} van ${getLetterWord(currentLetterInfo, language)}`
+                  : `${paintLetter} for ${getLetterWord(currentLetterInfo, language)}`}
               </span>
             </div>
           </div>
@@ -963,6 +969,14 @@ export default function ColorGradingGame({
 
             {/* Central Paint Canvas on Letter */}
             <div className="relative w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 rounded-3xl overflow-hidden border-4 border-white shadow-2xl flex items-center justify-center">
+              {/* Dutch Letter & Symbol Badge in canvas corner */}
+              <div className="absolute top-2.5 right-2.5 z-20 pointer-events-none drop-shadow flex items-center gap-1.5 bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-2xl border border-white/20 select-none animate-kid-float">
+                <span className="text-2xl sm:text-3xl">{getLetterEmoji(currentLetterInfo, language)}</span>
+                <span className="text-xs sm:text-sm font-black text-white">
+                  {getLetterWord(currentLetterInfo, language)}
+                </span>
+              </div>
+
               {/* Background of the letter / card */}
               <div
                 className="absolute inset-0 transition-colors duration-300"
@@ -1150,31 +1164,40 @@ export default function ColorGradingGame({
             </div>
           </div>
 
-          {/* Letter Chooser A to Z Strip (Enlarged for toddler touch selection) */}
+          {/* Letter Chooser A to Z Strip (Enlarged with Dutch Symbol & Letter) */}
           <div className="relative z-10 w-full max-w-4xl flex items-center gap-2 overflow-x-auto scrollbar-none py-2 px-2 mt-1 bg-black/25 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner">
-            {ALPHABET_DATA.map((item) => (
-              <button
-                key={item.letter}
-                onClick={() => {
-                  sounds.playPop();
-                  setPaintLetter(item.letter);
-                  clearPaintCanvas();
-                  const letterWord = language === 'nl' ? item.wordNl : item.word;
-                  const spokenPhrase =
-                    language === 'nl'
-                      ? `${item.letter} van ${letterWord}!`
-                      : `${item.letter} for ${letterWord}!`;
-                  sounds.speak(spokenPhrase, language);
-                }}
-                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center font-black text-lg sm:text-xl transition-all cursor-pointer flex-shrink-0 shadow-md ${
-                  paintLetter === item.letter
-                    ? 'bg-amber-400 text-amber-950 scale-110 shadow-lg ring-3 ring-white font-black'
-                    : 'bg-white/20 text-white hover:bg-white/35 active:scale-95'
-                }`}
-              >
-                {item.letter}
-              </button>
-            ))}
+            {ALPHABET_DATA.map((item) => {
+              const letterEmoji = getLetterEmoji(item, language);
+              const isSelected = paintLetter === item.letter;
+              return (
+                <button
+                  key={item.letter}
+                  onClick={() => {
+                    sounds.playPop();
+                    setPaintLetter(item.letter);
+                    clearPaintCanvas();
+                    const letterWord = getLetterWord(item, language);
+                    const letterPronounce =
+                      language === 'nl'
+                        ? LETTER_NAMES.nl[item.letter] || item.letter
+                        : item.letter;
+                    const spokenPhrase =
+                      language === 'nl'
+                        ? `${letterPronounce} van ${letterWord}!`
+                        : `${item.letter} for ${letterWord}!`;
+                    sounds.speak(spokenPhrase, language);
+                  }}
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center font-black transition-all cursor-pointer flex-shrink-0 shadow-md ${
+                    isSelected
+                      ? 'bg-amber-400 text-amber-950 scale-110 shadow-lg ring-3 ring-white font-black'
+                      : 'bg-white/20 text-white hover:bg-white/35 active:scale-95'
+                  }`}
+                >
+                  <span className="text-lg sm:text-xl leading-none">{item.letter}</span>
+                  <span className="text-xs sm:text-sm mt-0.5 leading-none">{letterEmoji}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

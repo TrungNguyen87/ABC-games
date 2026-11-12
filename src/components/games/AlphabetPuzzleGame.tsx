@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { ALPHABET_DATA } from '../../data/alphabetData';
+import { ALPHABET_DATA, getLetterEmoji, getLetterWord } from '../../data/alphabetData';
 import { LetterInfo, Language, LetterStyleOption } from '../../types/game';
 import AlphabetLoreAvatar from '../AlphabetLoreAvatar';
 import LetterAvatar from '../LetterAvatar';
@@ -304,7 +304,7 @@ export default function AlphabetPuzzleGame({
 
       triggerKidCheer({
         message: language === 'nl' ? 'PUZZEL KLAAR!' : 'PUZZLE COMPLETE!',
-        emoji: currentLetterInfo.emoji,
+        emoji: getLetterEmoji(currentLetterInfo, language),
       });
 
       const message =
@@ -317,7 +317,7 @@ export default function AlphabetPuzzleGame({
     } else {
       sounds.playColorChime(nextPlaced.length / pieceCount);
     }
-  }, [isComplete, placedPieces, pieceCount, onEarnStar, onUnlockSticker, letterChar, currentLetterInfo.emoji, currentWord, language]);
+  }, [isComplete, placedPieces, pieceCount, onEarnStar, onUnlockSticker, letterChar, currentLetterInfo, currentWord, language]);
 
   // Check if position is near a slot on the board
   const checkNearSlot = useCallback((clientX: number, clientY: number, pieceId: number) => {
@@ -521,7 +521,7 @@ export default function AlphabetPuzzleGame({
             <Volume2 className="w-3.5 h-3.5 animate-pulse" />
           </div>
           <span className="text-base sm:text-lg font-black tracking-wide drop-shadow flex items-center gap-1.5">
-            <span>{currentLetterInfo.emoji}</span>
+            <span>{getLetterEmoji(currentLetterInfo, language)}</span>
             <span>{letterChar} - {currentWord}</span>
           </span>
         </div>
@@ -773,21 +773,26 @@ export default function AlphabetPuzzleGame({
         </div>
       </div>
 
-      {/* Bottom Horizontal Letter Picker Strip A-Z (Enlarged for toddler touch selection) */}
+      {/* Bottom Horizontal Letter Picker Strip A-Z (Enlarged with Dutch Symbol & Letter) */}
       <div className="relative z-10 w-full max-w-4xl flex items-center gap-2 overflow-x-auto scrollbar-none py-2 px-2 mt-0.5 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner">
-        {ALPHABET_DATA.map((item, idx) => (
-          <button
-            key={item.letter}
-            onClick={() => startPuzzle(idx)}
-            className={`w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center font-black text-base sm:text-lg transition-all cursor-pointer flex-shrink-0 shadow-md ${
-              currentIdx === idx
-                ? 'bg-amber-400 text-amber-950 scale-110 shadow-lg ring-3 ring-white font-black'
-                : 'bg-white/20 text-white hover:bg-white/35 active:scale-95'
-            }`}
-          >
-            {item.letter}
-          </button>
-        ))}
+        {ALPHABET_DATA.map((item, idx) => {
+          const letterEmoji = getLetterEmoji(item, language);
+          const isSelected = currentIdx === idx;
+          return (
+            <button
+              key={item.letter}
+              onClick={() => startPuzzle(idx)}
+              className={`w-13 h-13 sm:w-15 sm:h-15 rounded-2xl flex flex-col items-center justify-center font-black transition-all cursor-pointer flex-shrink-0 shadow-md ${
+                isSelected
+                  ? 'bg-amber-400 text-amber-950 scale-110 shadow-lg ring-3 ring-white font-black'
+                  : 'bg-white/20 text-white hover:bg-white/35 active:scale-95'
+              }`}
+            >
+              <span className="text-base sm:text-lg leading-none">{item.letter}</span>
+              <span className="text-xs sm:text-sm mt-0.5 leading-none">{letterEmoji}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

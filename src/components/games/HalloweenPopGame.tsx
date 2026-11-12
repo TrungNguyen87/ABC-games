@@ -419,7 +419,7 @@ export default function HalloweenPopGame({
           >
             {targetLetter.letter}
           </span>
-          <span className="text-3xl animate-bounce">{targetLetter.emoji}</span>
+          <span className="text-3xl animate-bounce">{getLetterEmoji(targetLetter, language)}</span>
         </div>
       ) : (
         <div className="relative z-20 text-white/90 text-xs sm:text-sm font-extrabold drop-shadow text-center my-1 bg-black/25 px-4 py-1 rounded-full border border-white/10">

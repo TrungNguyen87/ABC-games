@@ -169,7 +169,7 @@ export default function StickerBookGame({ unlockedLetters, language }: StickerBo
     fireConfettiBurst(e.clientX, e.clientY);
     triggerKidCheer({
       message: language === 'nl' ? 'MOOI GEPLAKT!' : 'GREAT STICKER!',
-      emoji: letterItem.emoji,
+      emoji: getLetterEmoji(letterItem, language),
       x: e.clientX,
       y: e.clientY,
     });
@@ -325,7 +325,7 @@ export default function StickerBookGame({ unlockedLetters, language }: StickerBo
               >
                 {isUnlocked ? (
                   <>
-                    <span className="text-xl sm:text-2xl">{item.emoji}</span>
+                    <span className="text-xl sm:text-2xl">{getLetterEmoji(item, language)}</span>
                     <span
                       className="text-xs font-black px-1.5 rounded-md text-white mt-0.5"
                       style={{ backgroundColor: item.color }}

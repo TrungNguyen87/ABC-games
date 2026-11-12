@@ -79,15 +79,13 @@ export default function LetterFriendsGame({
       setIsLocked(true);
       setSelectedLetter(letter.letter);
       setFeedbackText(
-        language === 'nl'
-          ? `${targetWord}! ${targetLetter.emoji}`
-          : `${targetWord}! ${targetLetter.emoji}`
+        `${targetWord}! ${getLetterEmoji(targetLetter, language)}`
       );
       sounds.playTada();
       fireConfettiBurst();
       triggerKidCheer({
         message: language === 'nl' ? 'GOED GEVONDEN!' : 'GREAT MATCH!',
-        emoji: targetLetter.emoji,
+        emoji: getLetterEmoji(targetLetter, language),
       });
 
       onEarnStar();

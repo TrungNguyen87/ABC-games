@@ -270,7 +270,7 @@ export default function MusicalPianoGame({ onEarnStar, language }: MusicalPianoG
                     {key.label}
                   </span>
                   <span className="text-2xl sm:text-3xl mt-1 drop-shadow">
-                    {key.emoji}
+                    {language === 'nl' && (key as any).emojiNl ? (key as any).emojiNl : key.emoji}
                   </span>
                   <span className="text-xs font-bold opacity-90 hidden sm:block">
                     {wordDisplay}
