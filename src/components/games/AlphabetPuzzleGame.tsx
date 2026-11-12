@@ -209,6 +209,51 @@ export default function AlphabetPuzzleGame({
     }
   }, [pieceCount, placedPieces, language]);
 
+  // Reusable visual renderer for sliced puzzle pieces
+  const renderPieceVisual = (
+    slot: PuzzleSlot,
+    avatarSize: 'sm' | 'md' | 'lg' | 'xl' = 'xl',
+    isGhost = false,
+    scaleClass = 'scale-90 sm:scale-100'
+  ) => (
+    <div
+      className={`relative w-full h-full overflow-hidden flex items-center justify-center pointer-events-none ${
+        isGhost ? 'opacity-35 grayscale' : ''
+      }`}
+      style={{ clipPath: slot.clipPath }}
+    >
+      <div
+        className="absolute flex items-center justify-center"
+        style={{
+          left: slot.innerLeft,
+          top: slot.innerTop,
+          width: slot.innerWidth,
+          height: slot.innerHeight,
+        }}
+      >
+        <div className={scaleClass}>
+          {letterStyle === 'lore' ? (
+            <AlphabetLoreAvatar
+              letter={letterChar}
+              size={avatarSize}
+              interactive={false}
+              asDiv={true}
+              language={language}
+            />
+          ) : (
+            <LetterAvatar
+              letterInfo={currentLetterInfo}
+              size={avatarSize}
+              interactive={false}
+              asDiv={true}
+              language={language}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   // Start puzzle
   const startPuzzle = (index: number, pieces: PieceCount = pieceCount) => {
     setCurrentIdx(index);
@@ -464,7 +509,11 @@ export default function AlphabetPuzzleGame({
         <div
           onClick={() => {
             sounds.playBoing();
-            sounds.speak(`${letterChar}! ${currentWord}!`, language);
+            const spoken =
+              language === 'nl'
+                ? `${letterChar} van ${currentWord}!`
+                : `${letterChar} for ${currentWord}!`;
+            sounds.speak(spoken, language);
           }}
           className="cursor-pointer group inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-1 rounded-2xl border-2 border-white/40 shadow-lg active:scale-95 transition-all"
         >
@@ -564,43 +613,16 @@ export default function AlphabetPuzzleGame({
                 >
                   {isFilled ? (
                     // Render the placed piece portion
-                    <div
-                      className="relative w-full h-full overflow-hidden animate-pop-in pointer-events-none"
-                      style={{ clipPath: slot.clipPath }}
-                    >
-                      <div
-                        className="absolute flex items-center justify-center"
-                        style={{
-                          left: slot.innerLeft,
-                          top: slot.innerTop,
-                          width: slot.innerWidth,
-                          height: slot.innerHeight,
-                        }}
-                      >
-                        {letterStyle === 'lore' ? (
-                          <AlphabetLoreAvatar
-                            letter={letterChar}
-                            size="xl"
-                            interactive={false}
-                            asDiv={true}
-                          />
-                        ) : (
-                          <LetterAvatar
-                            letterInfo={currentLetterInfo}
-                            size="xl"
-                            interactive={false}
-                            asDiv={true}
-                          />
-                        )}
-                      </div>
+                    <div className="relative w-full h-full animate-pop-in pointer-events-none">
+                      {renderPieceVisual(slot, 'xl', false, 'scale-95')}
                     </div>
                   ) : (
-                    // Empty slot target with guidance label
-                    <div className="flex flex-col items-center justify-center opacity-60 pointer-events-none">
-                      <span className="text-2xl font-black">🧩</span>
-                      <span className="text-white/80 font-black text-xs sm:text-sm">
-                        {slot.label}
-                      </span>
+                    // Empty slot target: ghost visual + subtle corner badge (not blocking whole piece)
+                    <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
+                      {renderPieceVisual(slot, 'xl', true, 'scale-95')}
+                      <div className="absolute top-1.5 left-2 flex items-center gap-1 bg-black/45 backdrop-blur-sm px-2 py-0.5 rounded-full text-white/90 text-[10px] sm:text-xs font-black shadow-sm">
+                        <span>🧩 {slot.label}</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -610,31 +632,37 @@ export default function AlphabetPuzzleGame({
         )}
       </div>
 
-      {/* Floating Dragged Piece Preview (Renders right under the finger / pointer) */}
+      {/* Floating Dragged Piece Preview (Renders actual letter slice right under finger) */}
       {draggingPieceId !== null && dragPos && (
         <div
           style={{
             left: `${dragPos.x}px`,
             top: `${dragPos.y}px`,
           }}
-          className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2 scale-110 rotate-3 transition-transform duration-75"
+          className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2 scale-110 rotate-2 transition-transform duration-75"
         >
           <div
-            className={`w-32 h-24 sm:w-40 sm:h-28 rounded-2xl bg-white text-indigo-950 flex flex-col items-center justify-center shadow-2xl border-4 ${
+            className={`rounded-3xl bg-white/95 backdrop-blur-md shadow-2xl border-4 overflow-hidden relative flex flex-col items-center justify-center ${
+              pieceCount === 2
+                ? 'w-44 h-28 sm:w-52 sm:h-32'
+                : pieceCount === 3
+                ? 'w-40 h-24 sm:w-48 sm:h-28'
+                : 'w-32 h-32 sm:w-36 sm:h-36'
+            } ${
               isNearTarget
                 ? 'border-emerald-400 ring-6 ring-emerald-300'
                 : 'border-amber-400 ring-4 ring-amber-300/50'
             }`}
           >
-            <span className="text-3xl font-black">
-              🧩 {puzzleSlots[draggingPieceId]?.label || ''}
-            </span>
-            <span
-              className="text-xs font-black px-2 py-0.5 rounded-full text-white mt-1"
-              style={{ backgroundColor: currentLetterInfo.color }}
-            >
-              {letterChar}
-            </span>
+            {renderPieceVisual(
+              puzzleSlots[draggingPieceId],
+              'xl',
+              false,
+              pieceCount === 2 ? 'scale-70 sm:scale-80' : 'scale-65 sm:scale-75'
+            )}
+            <div className="absolute top-1.5 left-2 flex items-center gap-1 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-full text-white text-[10px] sm:text-xs font-black">
+              <span>🧩 {puzzleSlots[draggingPieceId]?.label || ''}</span>
+            </div>
           </div>
         </div>
       )}
@@ -683,7 +711,7 @@ export default function AlphabetPuzzleGame({
         </div>
 
         {/* Scattered Draggable Puzzle Pieces Tray */}
-        <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap w-full py-1">
+        <div className="flex items-center justify-center gap-3 sm:gap-6 flex-wrap w-full py-1">
           {puzzleSlots.map((slot) => {
             const isPlaced = placedPieces.includes(slot.id);
             const isBeingDragged = draggingPieceId === slot.id;
@@ -693,37 +721,51 @@ export default function AlphabetPuzzleGame({
                 key={slot.id}
                 onPointerDown={(e) => handlePointerDown(slot.id, e)}
                 onClick={() => !isPlaced && handleSnapPiece(slot.id)}
-                className={`relative w-28 h-18 sm:w-36 sm:h-22 md:w-44 md:h-26 rounded-2xl flex flex-col items-center justify-center transition-all duration-150 select-none ${
+                className={`relative rounded-3xl flex flex-col items-center justify-center transition-all duration-150 select-none overflow-hidden ${
+                  pieceCount === 2
+                    ? 'w-40 h-28 sm:w-48 sm:h-32 md:w-56 md:h-36'
+                    : pieceCount === 3
+                    ? 'w-36 h-24 sm:w-44 sm:h-28 md:w-52 md:h-30'
+                    : 'w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36'
+                } ${
                   isPlaced
-                    ? 'opacity-20 pointer-events-none scale-90 translate-y-2'
+                    ? 'opacity-25 pointer-events-none scale-90 translate-y-2'
                     : isBeingDragged
-                    ? 'opacity-40 scale-95 border-2 border-dashed border-white'
-                    : 'cursor-grab active:cursor-grabbing bg-white hover:bg-amber-100 hover:scale-105 active:scale-95 shadow-xl'
+                    ? 'opacity-30 scale-95 border-2 border-dashed border-white'
+                    : 'cursor-grab active:cursor-grabbing bg-white/95 hover:bg-white hover:scale-105 active:scale-95 shadow-2xl'
                 }`}
                 style={{
-                  border: isPlaced ? '2px dashed rgba(255,255,255,0.4)' : '3px solid #ffffff',
-                  boxShadow: isPlaced ? 'none' : '0 8px 0 rgba(0,0,0,0.3)',
+                  border: isPlaced ? '2px dashed rgba(255,255,255,0.4)' : '4px solid #ffffff',
+                  boxShadow: isPlaced ? 'none' : '0 10px 0 rgba(0,0,0,0.25), 0 15px 25px rgba(0,0,0,0.2)',
                   touchAction: 'none',
                 }}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl sm:text-3xl font-black text-indigo-950">
-                    🧩 {slot.label}
-                  </span>
-                  <span
-                    className="text-xs sm:text-sm font-black px-2 py-0.5 rounded-lg text-white"
-                    style={{ backgroundColor: currentLetterInfo.color }}
-                  >
-                    {letterChar}
-                  </span>
+                {/* Visual letter slice cutout */}
+                <div className="relative w-full h-full flex items-center justify-center p-1.5 overflow-hidden">
+                  <div className="relative w-full h-full overflow-hidden rounded-2xl bg-indigo-950/10 flex items-center justify-center">
+                    {renderPieceVisual(
+                      slot,
+                      'xl',
+                      false,
+                      pieceCount === 2 ? 'scale-70 sm:scale-80 md:scale-90' : 'scale-60 sm:scale-70 md:scale-80'
+                    )}
+                  </div>
                 </div>
 
-                <span className="text-[10px] font-bold text-indigo-900/70 mt-0.5">
-                  {language === 'nl' ? 'Sleep of tik mij!' : 'Drag or tap me!'}
-                </span>
+                {/* Subtle corner badge for number & label */}
+                <div className="absolute top-1.5 left-2 z-10 flex items-center gap-1 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-full text-white text-[10px] sm:text-xs font-black shadow pointer-events-none">
+                  <span>🧩 {slot.label}</span>
+                </div>
+
+                {/* Bottom drag hint pill */}
+                {!isPlaced && (
+                  <div className="absolute bottom-1 right-2 z-10 text-[9px] sm:text-[10px] font-black text-indigo-950/80 bg-white/85 px-2 py-0.5 rounded-full shadow-sm pointer-events-none">
+                    {language === 'nl' ? 'Sleep of tik!' : 'Drag or tap!'}
+                  </div>
+                )}
 
                 {isPlaced && (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 absolute -top-2 -right-2 fill-emerald-200" />
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500 absolute top-2 right-2 fill-emerald-100 z-20 drop-shadow-md" />
                 )}
               </div>
             );
@@ -731,16 +773,16 @@ export default function AlphabetPuzzleGame({
         </div>
       </div>
 
-      {/* Bottom Horizontal Letter Picker Strip A-Z */}
-      <div className="relative z-10 w-full max-w-4xl flex items-center gap-1 overflow-x-auto scrollbar-none py-1 px-1 mt-0.5">
+      {/* Bottom Horizontal Letter Picker Strip A-Z (Enlarged for toddler touch selection) */}
+      <div className="relative z-10 w-full max-w-4xl flex items-center gap-2 overflow-x-auto scrollbar-none py-2 px-2 mt-0.5 bg-black/20 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner">
         {ALPHABET_DATA.map((item, idx) => (
           <button
             key={item.letter}
             onClick={() => startPuzzle(idx)}
-            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-black text-xs sm:text-sm transition-all cursor-pointer flex-shrink-0 ${
+            className={`w-11 h-11 sm:w-13 sm:h-13 rounded-2xl flex items-center justify-center font-black text-base sm:text-lg transition-all cursor-pointer flex-shrink-0 shadow-md ${
               currentIdx === idx
-                ? 'bg-amber-400 text-amber-950 scale-110 shadow-md ring-2 ring-white font-black'
-                : 'bg-white/20 text-white hover:bg-white/30'
+                ? 'bg-amber-400 text-amber-950 scale-110 shadow-lg ring-3 ring-white font-black'
+                : 'bg-white/20 text-white hover:bg-white/35 active:scale-95'
             }`}
           >
             {item.letter}

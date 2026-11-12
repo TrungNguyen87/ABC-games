@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ALPHABET_DATA } from '../../data/alphabetData';
+import { ALPHABET_DATA, getLetterWord, getLetterEmoji } from '../../data/alphabetData';
 import { LetterInfo, Language, LetterStyleOption } from '../../types/game';
 import AlphabetLoreAvatar from '../AlphabetLoreAvatar';
 import LetterAvatar from '../LetterAvatar';
@@ -219,11 +219,12 @@ export default function HalloweenPopGame({
       clientY = (e as React.MouseEvent).clientY;
     }
 
-    // Creature details
+    // Creature & Letter details - letter A links to Appel/Apple with apple emoji
     const cfg = CREATURE_CONFIGS[item.type];
-    const wordLabel = language === 'nl' ? cfg.nameNl : cfg.nameEn;
+    const letterWord = getLetterWord(item.letter, language);
+    const letterEmoji = getLetterEmoji(item.letter, language);
 
-    // Visual burst popup
+    // Visual burst popup with the word's emoji and name
     const popupId = Date.now();
     setPopups((prev) => [
       ...prev,
@@ -231,8 +232,8 @@ export default function HalloweenPopGame({
         id: popupId,
         x: clientX,
         y: clientY,
-        text: `${item.letter.letter}! ${wordLabel}`,
-        emoji: cfg.emoji,
+        text: `${item.letter.letter}! ${letterWord}`,
+        emoji: letterEmoji,
       },
     ]);
     setTimeout(() => {
@@ -265,16 +266,16 @@ export default function HalloweenPopGame({
         fireConfettiBurst('halloween');
         triggerKidCheer({
           message: language === 'nl' ? 'GOED GEPLOPT!' : 'GREAT POP!',
-          emoji: cfg.emoji,
+          emoji: letterEmoji,
         });
         onEarnStar();
         if (onUnlockSticker) onUnlockSticker(item.letter.letter);
 
-        const targetWord =
+        const cheerMsg =
           language === 'nl'
-            ? targetLetter.wordNl || targetLetter.word
-            : targetLetter.word;
-        sounds.speak(`${item.letter.letter}! ${targetWord}!`, language);
+            ? `Super! ${item.letter.letter} van ${letterWord}!`
+            : `Great! ${item.letter.letter} for ${letterWord}!`;
+        sounds.speak(cheerMsg, language);
 
         setTimeout(() => {
           pickNewTarget();
@@ -282,13 +283,21 @@ export default function HalloweenPopGame({
       } else {
         // Soft giggle on other creature
         sounds.playGhost();
-        sounds.speak(`${item.letter.letter}! ${wordLabel}!`, language);
+        const otherMsg =
+          language === 'nl'
+            ? `${item.letter.letter} van ${letterWord}!`
+            : `${item.letter.letter} for ${letterWord}!`;
+        sounds.speak(otherMsg, language);
       }
     } else {
       // Free play mode: soft giggle or pop + letter
       if (!audioLockedRef.current) {
         audioLockedRef.current = true;
-        sounds.speak(`${item.letter.letter}! ${wordLabel}!`, language);
+        const freeMsg =
+          language === 'nl'
+            ? `${item.letter.letter} van ${letterWord}!`
+            : `${item.letter.letter} for ${letterWord}!`;
+        sounds.speak(freeMsg, language);
         setTimeout(() => {
           audioLockedRef.current = false;
         }, 800);

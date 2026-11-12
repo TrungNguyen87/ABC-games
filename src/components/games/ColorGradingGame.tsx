@@ -833,7 +833,15 @@ export default function ColorGradingGame({
           <div
             onClick={() => {
               sounds.playBoing();
-              sounds.speak(`${paintLetter}! ${currentLetterInfo.wordNl || currentLetterInfo.word}!`, language);
+              const letterWord =
+                language === 'nl'
+                  ? currentLetterInfo.wordNl || currentLetterInfo.word
+                  : currentLetterInfo.word;
+              const phrase =
+                language === 'nl'
+                  ? `${paintLetter} van ${letterWord}!`
+                  : `${paintLetter} for ${letterWord}!`;
+              sounds.speak(phrase, language);
             }}
             className="cursor-pointer group flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border-2 border-white/30 shadow-md active:scale-95 transition-all text-center mb-1"
           >
@@ -1142,8 +1150,8 @@ export default function ColorGradingGame({
             </div>
           </div>
 
-          {/* Letter Chooser A to Z Strip */}
-          <div className="relative z-10 w-full max-w-4xl flex items-center gap-1 overflow-x-auto scrollbar-none py-1 px-1 mt-1">
+          {/* Letter Chooser A to Z Strip (Enlarged for toddler touch selection) */}
+          <div className="relative z-10 w-full max-w-4xl flex items-center gap-2 overflow-x-auto scrollbar-none py-2 px-2 mt-1 bg-black/25 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner">
             {ALPHABET_DATA.map((item) => (
               <button
                 key={item.letter}
@@ -1151,12 +1159,17 @@ export default function ColorGradingGame({
                   sounds.playPop();
                   setPaintLetter(item.letter);
                   clearPaintCanvas();
-                  sounds.speak(item.letter, language);
+                  const letterWord = language === 'nl' ? item.wordNl : item.word;
+                  const spokenPhrase =
+                    language === 'nl'
+                      ? `${item.letter} van ${letterWord}!`
+                      : `${item.letter} for ${letterWord}!`;
+                  sounds.speak(spokenPhrase, language);
                 }}
-                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-black text-xs sm:text-sm transition-all cursor-pointer flex-shrink-0 ${
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center font-black text-lg sm:text-xl transition-all cursor-pointer flex-shrink-0 shadow-md ${
                   paintLetter === item.letter
-                    ? 'bg-amber-400 text-amber-950 scale-110 shadow-md ring-2 ring-white font-black'
-                    : 'bg-white/20 text-white hover:bg-white/30'
+                    ? 'bg-amber-400 text-amber-950 scale-110 shadow-lg ring-3 ring-white font-black'
+                    : 'bg-white/20 text-white hover:bg-white/35 active:scale-95'
                 }`}
               >
                 {item.letter}

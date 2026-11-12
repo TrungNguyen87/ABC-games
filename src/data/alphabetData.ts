@@ -50,7 +50,7 @@ export const ALPHABET_DATA: LetterInfo[] = [
     letter: 'C',
     lower: 'c',
     phonics: 'kuh',
-    phonicsNl: 'see',
+    phonicsNl: 'cee',
     word: 'Cat',
     wordNl: 'Citroen',
     emoji: '🐱',
